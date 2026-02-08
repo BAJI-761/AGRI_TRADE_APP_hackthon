@@ -1,0 +1,14 @@
+# Copy this file to android/key.properties and fill the values (DO NOT commit your passwords).
+# Example (relative path to keystore placed in android/keystore.jks):
+# storeFile=keystore.jks
+# storePassword=your_store_password
+# keyAlias=your_key_alias
+# keyPassword=your_key_password
+
+# If you prefer environment variables (good for CI), set the following instead:
+# KEYSTORE_PATH -> absolute or relative path to the keystore file
+# KEYSTORE_STORE_PASSWORD -> store password
+# KEYSTORE_KEY_ALIAS -> key alias
+# KEYSTORE_KEY_PASSWORD -> key password
+
+# Note: Keep your keystore safe. Losing it prevents app updates with the same signing key.

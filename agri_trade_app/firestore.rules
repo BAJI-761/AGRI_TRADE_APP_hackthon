@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection - allow read by phone number (for phone-only auth)
+    match /users/{userId} {
+      // Allow anyone to read user documents (for phone lookup)
+      // This is needed because we check users BEFORE authentication
+      allow read: if true;
+      
+      // Allow write if creating a new user with required fields
+      allow create: if request.resource.data.keys().hasAll(['phone', 'name', 'userType']) &&
+                     request.resource.data.phone is string &&
+                     request.resource.data.name is string &&
+                     request.resource.data.userType is string;
+      
+      // Allow update/delete for now (can be restricted later)
+      allow update, delete: if true;
+    }
+    
+    // Orders collection - allow read/write for all users (for phone-only auth)
+    // Farmers can create orders, retailers can read and update them
+    match /orders/{orderId} {
+      // Allow anyone to read orders (retailers need to see orders)
+      allow read: if true;
+      
+      // Allow creating orders (farmers creating new orders)
+      allow create: if request.resource.data.keys().hasAll([
+        'farmerId', 'crop', 'quantity', 'unit', 'pricePerUnit', 
+        'availableDate', 'location', 'notes', 'createdAt', 'status'
+      ]) &&
+      request.resource.data.farmerId is string &&
+      request.resource.data.crop is string &&
+      request.resource.data.quantity is number &&
+      request.resource.data.unit is string &&
+      request.resource.data.pricePerUnit is number &&
+      request.resource.data.status is string;
+      
+      // Allow updating orders (retailers accepting/rejecting orders)
+      // Allow updating status field only
+      allow update: if request.resource.data.status is string &&
+        request.resource.data.status in ['pending', 'accepted', 'rejected'];
+      
+      // Allow deleting orders (optional)
+      allow delete: if true;
+    }
+    
+    // Notifications collection - allow read/write for all users
+    match /notifications/{notificationId} {
+      // Allow users to read their own notifications
+      allow read: if true;
+      
+      // Allow creating notifications
+      allow create: if request.resource.data.keys().hasAll([
+        'userId', 'userType', 'type', 'title', 'body', 'createdAt'
+      ]) &&
+      request.resource.data.userId is string &&
+      request.resource.data.userType is string &&
+      request.resource.data.type is string &&
+      request.resource.data.title is string &&
+      request.resource.data.body is string;
+      
+      // Allow updating notifications (mark as read, etc.)
+      allow update: if true;
+      
+      // Allow deleting notifications
+      allow delete: if true;
+    }
+    
+    // All other collections - allow read/write for development
+    // In production, add more restrictive rules
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+
