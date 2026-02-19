@@ -240,7 +240,7 @@ class _LanguageVoiceSelectionScreenState extends State<LanguageVoiceSelectionScr
                 // Title
                 FadeTransition(
                   opacity: _fadeAnimation,
-                  child: Text(
+                  child: const Text(
                     'Choose Your Language',
                     style: TextStyle(
                       fontSize: 32,
@@ -316,7 +316,7 @@ class _LanguageVoiceSelectionScreenState extends State<LanguageVoiceSelectionScr
                               : _hasSpoken
                                   ? 'Speak now...'
                                   : 'Preparing voice recognition...',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
                             color: Colors.white,
                             fontWeight: FontWeight.w500,
@@ -393,7 +393,7 @@ class _LanguageVoiceSelectionScreenState extends State<LanguageVoiceSelectionScr
             const SizedBox(height: 8),
             Text(
               name,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

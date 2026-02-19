@@ -6,7 +6,10 @@ import '../../services/voice_service.dart';
 import '../../services/language_service.dart';
 import '../../services/notification_service.dart';
 import '../../models/order.dart' as model;
-import '../../widgets/navigation_helper.dart';
+
+import '../../theme/app_theme.dart';
+import '../../widgets/app_gradient_scaffold.dart';
+import '../../widgets/primary_button.dart';
 
 class CreateOrderScreen extends StatefulWidget {
   const CreateOrderScreen({super.key});
@@ -25,19 +28,24 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   final _notesController = TextEditingController();
   DateTime? _availableDate;
   bool _submitting = false;
-  bool _voiceMode = false;
+  bool _isListening = false;
 
-  void _toggleVoiceMode() {
-    setState(() {
-      _voiceMode = !_voiceMode;
-    });
+  @override
+  void dispose() {
+    _cropController.dispose();
+    _quantityController.dispose();
+    _priceController.dispose();
+    _unitController.dispose();
+    _locationController.dispose();
+    _notesController.dispose();
+    super.dispose();
   }
 
   Future<void> _handleVoiceSell() async {
+    setState(() => _isListening = true);
     try {
       final voiceService = Provider.of<VoiceService>(context, listen: false);
       
-      // Initialize voice service
       final available = await voiceService.initializeSpeech();
       if (!available) {
         if (mounted) {
@@ -45,24 +53,22 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             const SnackBar(content: Text('Voice not available')),
           );
         }
+        setState(() => _isListening = false);
         return;
       }
 
-      // Start voice sell flow
       final result = await voiceService.voiceSellFlow();
       
       if (result['confirmed'] == true && result.isNotEmpty) {
-        // Populate form fields with voice data
         _cropController.text = result['crop'] ?? '';
         _quantityController.text = result['quantity']?.toString() ?? '';
         _unitController.text = result['unit'] ?? 'kg';
         _priceController.text = result['price']?.toString() ?? '';
         _locationController.text = result['location'] ?? '';
-        _availableDate = DateTime.now().add(const Duration(days: 1)); // Default to tomorrow
+        _availableDate = DateTime.now().add(const Duration(days: 1));
         
         setState(() {});
         
-        // Auto-submit if all required fields are filled
         if (_cropController.text.isNotEmpty && 
             _quantityController.text.isNotEmpty && 
             _priceController.text.isNotEmpty) {
@@ -81,6 +87,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           SnackBar(content: Text('Voice sell error: $e')),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isListening = false);
     }
   }
 
@@ -91,14 +99,12 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
       
-      // Get farmer ID: use Firebase Auth UID if available, otherwise use phone number
       String farmerId = '';
       if (auth.user != null && auth.user!.uid.isNotEmpty) {
         farmerId = auth.user!.uid;
       } else if (auth.phone != null && auth.phone!.isNotEmpty) {
         farmerId = auth.phone!;
       } else if (auth.name != null) {
-        // Last resort: use name as identifier (shouldn't happen in normal flow)
         farmerId = auth.name!;
       }
       
@@ -124,7 +130,6 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       );
       
       final service = OrderService();
-      // Link notification service
       final notificationService = Provider.of<NotificationService>(context, listen: false);
       service.setNotificationService(notificationService);
       
@@ -132,7 +137,6 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       
       if (!mounted) return;
       
-      // Voice confirmation
       final voiceService = Provider.of<VoiceService>(context, listen: false);
       await voiceService.speak(
         voiceService.currentLanguage == 'te' 
@@ -143,7 +147,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       if (mounted) {
         final ls = Provider.of<LanguageService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ls.getLocalizedString('order_created'))),
+          SnackBar(content: Text(ls.getLocalizedString('order_created')), backgroundColor: AppTheme.primaryGreen),
         );
         Navigator.pop(context);
       }
@@ -152,22 +156,16 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         final ls = Provider.of<LanguageService>(context, listen: false);
         String errorMessage = '${ls.getLocalizedString('failed')}: $e';
         
-        // Provide user-friendly error messages
-        if (e.toString().contains('PERMISSION_DENIED') || e.toString().contains('permission')) {
+        if (e.toString().contains('PERMISSION_DENIED')) {
           errorMessage = ls.currentLanguage == 'te'
-            ? 'అనుమతి తిరస్కరించబడింది. దయచేసి Firebase Console లో Firestore నియమాలను తనిఖీ చేయండి.'
-            : 'Permission denied. Please check Firestore rules in Firebase Console.';
-        } else if (e.toString().contains('network') || e.toString().contains('internet')) {
-          errorMessage = ls.currentLanguage == 'te'
-            ? 'నెట్‌వర్క్ లోపం. దయచేసి ఇంటర్నెట్ కనెక్షన్‌ను తనిఖీ చేయండి.'
-            : 'Network error. Please check your internet connection.';
+            ? 'అనుమతి తిరస్కరించబడింది.'
+            : 'Permission denied.';
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -177,77 +175,158 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   @override
-  void dispose() {
-    _cropController.dispose();
-    _quantityController.dispose();
-    _priceController.dispose();
-    _unitController.dispose();
-    _locationController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return NavigationHelper(
-      child: Scaffold(
-        appBar: NavigationAppBar(
-          title: Provider.of<LanguageService>(context, listen: false).getLocalizedString('create_order'),
-          backgroundColor: Colors.green,
-          foregroundColor: Colors.white,
-          actions: [],
+    final ls = Provider.of<LanguageService>(context);
+    
+    return AppGradientScaffold(
+      headerHeightFraction: 0.2, // Smaller header for detail screens
+      headerChildren: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                ls.getLocalizedString('create_order'),
+                style: AppTheme.headingMedium.copyWith(color: Colors.white),
+              ),
+            ],
+          ),
         ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
+      ],
+      bodyChildren: [
+        Form(
           key: _formKey,
-          child: ListView(
-              children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Voice Assistant Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryGreen.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.2)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.mic, color: AppTheme.primaryGreen),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            ls.currentLanguage == 'te' 
+                              ? 'వాయిస్ ద్వారా ఆర్డర్ చేయండి'
+                              : 'Create order with Voice',
+                            style: AppTheme.bodyLarge.copyWith(
+                              color: AppTheme.primaryGreen,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      ls.currentLanguage == 'te'
+                        ? 'మైక్ నొక్కి చెప్పండి: "నేను 50 కిలోల బియ్యం 2000 రూపాయలకు అమ్మాలి"'
+                        : 'Tap mic and say: "I want to sell 50kg rice for 2000 rupees"',
+                      style: AppTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: _isListening ? null : _handleVoiceSell,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _isListening ? AppTheme.errorRed : AppTheme.primaryGreen,
+                          boxShadow: [
+                            BoxShadow(
+                              color: (_isListening ? AppTheme.errorRed : AppTheme.primaryGreen).withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            )
+                          ],
+                        ),
+                        child: Icon(
+                          _isListening ? Icons.graphic_eq : Icons.mic,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                    if (_isListening) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        ls.currentLanguage == 'te' ? 'వినబడుతోంది...' : 'Listening...',
+                        style: TextStyle(color: AppTheme.errorRed),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
               
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 24),
+
+              // Manual Entry Form
               TextFormField(
                 controller: _cropController,
-                decoration: InputDecoration(
-                  labelText: Provider.of<LanguageService>(context, listen: false).getLocalizedString('crop_label'),
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.getLocalizedString('crop_label'),
+                  prefixIcon: const Icon(Icons.grass, color: AppTheme.primaryGreen),
                 ),
-                validator: (v) => v == null || v.trim().isEmpty ? Provider.of<LanguageService>(context, listen: false).getLocalizedString('required') : null,
+                validator: (v) => v?.trim().isEmpty == true ? ls.getLocalizedString('required') : null,
               ),
+              const SizedBox(height: 16),
+              
               Row(
                 children: [
                   Expanded(
+                    flex: 2,
                     child: TextFormField(
                       controller: _quantityController,
-                      decoration: InputDecoration(labelText: Provider.of<LanguageService>(context, listen: false).getLocalizedString('quantity')),
+                      decoration: AppTheme.inputDecoration.copyWith(
+                        labelText: ls.getLocalizedString('quantity'),
+                        prefixIcon: const Icon(Icons.scale, color: AppTheme.primaryGreen),
+                      ),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return Provider.of<LanguageService>(context, listen: false).getLocalizedString('required');
-                        final n = double.tryParse(v);
-                        if (n == null || n <= 0) return Provider.of<LanguageService>(context, listen: false).getLocalizedString('enter_valid_number');
-                        return null;
-                      },
+                      validator: (v) => v?.isEmpty == true ? ls.getLocalizedString('required') : null,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  SizedBox(
-                    width: 100,
+                  Expanded(
+                    flex: 1,
                     child: TextFormField(
                       controller: _unitController,
-                      decoration: InputDecoration(labelText: Provider.of<LanguageService>(context, listen: false).getLocalizedString('unit')),
-                      validator: (v) => v == null || v.trim().isEmpty ? Provider.of<LanguageService>(context, listen: false).getLocalizedString('required') : null,
+                      decoration: AppTheme.inputDecoration.copyWith(
+                        labelText: ls.getLocalizedString('unit'),
+                      ),
+                      validator: (v) => v?.trim().isEmpty == true ? ls.getLocalizedString('required') : null,
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              
               TextFormField(
                 controller: _priceController,
-                decoration: InputDecoration(labelText: Provider.of<LanguageService>(context, listen: false).getLocalizedString('price_per_unit')),
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.getLocalizedString('price_per_unit'),
+                  prefixIcon: const Icon(Icons.currency_rupee, color: AppTheme.primaryGreen),
+                ),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return Provider.of<LanguageService>(context, listen: false).getLocalizedString('required');
-                  final n = double.tryParse(v);
-                  if (n == null || n <= 0) return Provider.of<LanguageService>(context, listen: false).getLocalizedString('enter_valid_amount');
-                  return null;
-                },
+                validator: (v) => v?.isEmpty == true ? ls.getLocalizedString('required') : null,
               ),
+              const SizedBox(height: 16),
+              
               GestureDetector(
                 onTap: () async {
                   final now = DateTime.now();
@@ -256,6 +335,14 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                     initialDate: now,
                     firstDate: now,
                     lastDate: DateTime(now.year + 2),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: const ColorScheme.light(primary: AppTheme.primaryGreen),
+                        ),
+                        child: child!,
+                      );
+                    },
                   );
                   if (picked != null) {
                     setState(() => _availableDate = picked);
@@ -263,41 +350,49 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                 },
                 child: AbsorbPointer(
                   child: TextFormField(
-                    decoration: InputDecoration(
-                      labelText: Provider.of<LanguageService>(context, listen: false).getLocalizedString('available_date'),
-                      hintText: Provider.of<LanguageService>(context, listen: false).getLocalizedString('select_date'),
-                    ),
-                    validator: (_) => _availableDate == null ? Provider.of<LanguageService>(context, listen: false).getLocalizedString('select_date') : null,
                     controller: TextEditingController(
-                      text: _availableDate == null
-                          ? ''
-                          : '${_availableDate!.year}-${_availableDate!.month.toString().padLeft(2, '0')}-${_availableDate!.day.toString().padLeft(2, '0')}',
+                      text: _availableDate == null ? '' : 
+                            '${_availableDate!.day}/${_availableDate!.month}/${_availableDate!.year}'
                     ),
+                    decoration: AppTheme.inputDecoration.copyWith(
+                      labelText: ls.getLocalizedString('available_date'),
+                      prefixIcon: const Icon(Icons.calendar_today, color: AppTheme.primaryGreen),
+                    ),
+                    validator: (_) => _availableDate == null ? ls.getLocalizedString('select_date') : null,
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              
               TextFormField(
                 controller: _locationController,
-              decoration: InputDecoration(labelText: Provider.of<LanguageService>(context, listen: false).getLocalizedString('location')),
-              ),
-              TextFormField(
-                controller: _notesController,
-              decoration: InputDecoration(labelText: Provider.of<LanguageService>(context, listen: false).getLocalizedString('notes')),
-                maxLines: 3,
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.getLocalizedString('location'),
+                  prefixIcon: const Icon(Icons.location_on, color: AppTheme.primaryGreen),
+                ),
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _submitting ? null : _submitOrder,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-              child: Consumer<LanguageService>(
-                builder: (context, ls, _) => Text(_submitting ? ls.getLocalizedString('submitting') : ls.getLocalizedString('create_order')),
+              
+              TextFormField(
+                controller: _notesController,
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.getLocalizedString('notes'),
+                  prefixIcon: const Icon(Icons.note, color: AppTheme.primaryGreen),
+                ),
+                maxLines: 3,
               ),
+              const SizedBox(height: 32),
+              
+              PrimaryButton(
+                label: ls.getLocalizedString('create_order'),
+                isLoading: _submitting,
+                onPressed: _submitOrder,
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
-      ),
-    ),
+      ],
     );
   }
 }

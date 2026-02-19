@@ -5,6 +5,8 @@ import '../../services/market_service.dart';
 import '../../services/language_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/navigation_helper.dart';
+import '../../widgets/app_gradient_scaffold.dart';
+import '../../theme/app_theme.dart';
 
 class RetailerSearchScreen extends StatefulWidget {
   const RetailerSearchScreen({super.key});
@@ -28,9 +30,12 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
         .where('userType', isEqualTo: 'retailer')
         .snapshots()
         .listen((snapshot) {
-      final list = snapshot.docs.map((d) => {
-            'id': d.id,
-            ...d.data(),
+      final list = snapshot.docs.map((d) {
+            final data = d.data();
+            return {
+              'id': d.id,
+              ...data,
+            };
           }).toList();
       setState(() {
         _retailers
@@ -43,15 +48,30 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ls = Provider.of<LanguageService>(context);
+
     return NavigationHelper(
-      child: Scaffold(
-        appBar: NavigationAppBar(
-          title: Provider.of<LanguageService>(context, listen: false).getLocalizedString('find_retailers_title'),
-          backgroundColor: Colors.green,
-          foregroundColor: Colors.white,
-        ),
-      body: Column(
-        children: [
+      child: AppGradientScaffold(
+        headerHeightFraction: 0.2,
+        headerChildren: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  ls.getLocalizedString('find_retailers_title'),
+                  style: AppTheme.headingMedium.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ],
+        bodyChildren: [
           // Search and Filter Section
           Container(
             padding: const EdgeInsets.all(16.0),
@@ -60,50 +80,53 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
                 // Search Bar
                 TextField(
                   controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: Provider.of<LanguageService>(context, listen: false).getLocalizedString('search_retailers_hint'),
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  decoration: AppTheme.inputDecoration.copyWith(
+                    hintText: ls.getLocalizedString('search_retailers_hint'),
+                    prefixIcon: const Icon(Icons.search, color: AppTheme.primaryGreen),
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: Colors.white,
                   ),
                   onChanged: (q) => setState(() => _filteredRetailers = _applyFilter(q)),
                 ),
                 const SizedBox(height: 16),
                 
-                // Crop Filter (placeholder; future filter)
+                // Crop Filter
                 Row(
                   children: [
-                    Consumer<LanguageService>(
-                      builder: (context, ls, _) => Text(
-                        ls.getLocalizedString('filter_by_crop') + ' ',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    Text(
+                      '${ls.getLocalizedString('filter_by_crop')} ',
+                      style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
                     ),
                     Expanded(
-                      child: DropdownButton<String>(
-                        value: _selectedCrop,
-                        isExpanded: true,
-                        items: [
-                          Provider.of<LanguageService>(context, listen: false).getLocalizedString('all'),
-                          'Wheat', 'Rice', 'Corn', 'Soybeans'
-                        ].map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            _selectedCrop = newValue!;
-                            _filteredRetailers = _applyFilter(_searchController.text);
-                          });
-                        },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedCrop,
+                            isExpanded: true,
+                            icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryGreen),
+                            items: [
+                              ls.getLocalizedString('all'),
+                              'Wheat', 'Rice', 'Corn', 'Soybeans'
+                            ].map((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value, style: AppTheme.bodyLarge),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _selectedCrop = newValue!;
+                                _filteredRetailers = _applyFilter(_searchController.text);
+                              });
+                            },
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -113,9 +136,10 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
           ),
           
           // Results Section
-          Expanded(
-            child: _filteredRetailers.isEmpty
-                ? Center(
+          _filteredRetailers.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 40),
+                  child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -125,163 +149,136 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
                           color: Colors.grey,
                         ),
                         const SizedBox(height: 16),
-                        Consumer<LanguageService>(
-                          builder: (context, ls, _) => Text(
-                            ls.getLocalizedString('no_retailers_found'),
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey[600],
-                            ),
-                          ),
+                        Text(
+                          ls.getLocalizedString('no_retailers_found'),
+                          style: AppTheme.bodyLarge.copyWith(color: Colors.grey[600]),
                         ),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    itemCount: _filteredRetailers.length,
-                    itemBuilder: (context, index) {
-                      final r = _filteredRetailers[index];
-                      return Card(
-                        elevation: 4,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Consumer<LanguageService>(
-                                          builder: (context, ls, _) => Text(
-                                            '${ls.getLocalizedString('retailer_label')}: ${r['name'] ?? r['username'] ?? r['phone'] ?? r['id']}',
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.green,
+                  ),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  itemCount: _filteredRetailers.length,
+                  itemBuilder: (context, index) {
+                    final r = _filteredRetailers[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: AppTheme.cardDecoration,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${ls.getLocalizedString('retailer_label')}: ${r['name'] ?? r['username'] ?? r['phone'] ?? r['id']}',
+                                        style: AppTheme.headingSmall.copyWith(color: AppTheme.primaryGreen, fontSize: 18),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        (r['address'] ?? '-') as String,
+                                        style: AppTheme.bodySmall,
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 2,
+                                      ),
+                                      if (r['averageRating'] != null) ...[
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ...List.generate(5, (index) {
+                                              final rating = (num.tryParse(r['averageRating'].toString()) ?? 0.0).toDouble();
+                                              return Icon(
+                                                index < rating.floor()
+                                                    ? Icons.star
+                                                    : (index < rating
+                                                        ? Icons.star_half
+                                                        : Icons.star_border),
+                                                color: Colors.amber,
+                                                size: 14,
+                                              );
+                                            }),
+                                            const SizedBox(width: 6),
+                                            Flexible(
+                                              child: Text(
+                                                (num.tryParse(r['averageRating'].toString()) ?? 0.0).toStringAsFixed(1),
+                                                style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.bold),
+                                              ),
                                             ),
-                                            overflow: TextOverflow.ellipsis,
-                                            maxLines: 1,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          (r['address'] ?? '-') as String,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.grey[600],
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 2,
-                                        ),
-                                        if (r['averageRating'] != null) ...[
-                                          const SizedBox(height: 8),
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              ...List.generate(5, (index) {
-                                                final rating = (r['averageRating'] as num).toDouble();
-                                                return Icon(
-                                                  index < rating.floor()
-                                                      ? Icons.star
-                                                      : (index < rating
-                                                          ? Icons.star_half
-                                                          : Icons.star_border),
-                                                  color: Colors.amber,
-                                                  size: 14,
-                                                );
-                                              }),
-                                              const SizedBox(width: 6),
+                                            if (r['totalReviews'] != null && (r['totalReviews'] as num) > 0) ...[
+                                              const SizedBox(width: 4),
                                               Flexible(
                                                 child: Text(
-                                                  '${r['averageRating'].toStringAsFixed(1)}',
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.grey[700],
-                                                  ),
-                                                  overflow: TextOverflow.ellipsis,
-                                                  maxLines: 1,
+                                                  '(${r['totalReviews']})',
+                                                  style: AppTheme.bodySmall.copyWith(color: Colors.grey),
                                                 ),
                                               ),
-                                              if (r['totalReviews'] != null && r['totalReviews'] > 0) ...[
-                                                const SizedBox(width: 4),
-                                                Flexible(
-                                                  child: Text(
-                                                    '(${r['totalReviews']})',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      color: Colors.grey[600],
-                                                    ),
-                                                    overflow: TextOverflow.ellipsis,
-                                                    maxLines: 1,
-                                                  ),
-                                                ),
-                                              ],
                                             ],
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ],
-                                    ),
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: const [
-                                      Icon(Icons.store_mall_directory, color: Colors.green, size: 24),
                                     ],
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: () {
-                                        _showRetailerContactDialog(context, r);
-                                      },
-                                      icon: const Icon(Icons.phone),
-                                      label: Consumer<LanguageService>(
-                                        builder: (context, ls, _) => Text(ls.getLocalizedString('contact')),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green,
-                                        foregroundColor: Colors.white,
-                                      ),
+                                ),
+                                const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Icon(Icons.store_mall_directory, color: AppTheme.primaryGreen, size: 32),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      _showRetailerContactDialog(context, r);
+                                    },
+                                    icon: const Icon(Icons.phone, size: 18),
+                                    label: Text(ls.getLocalizedString('contact')),
+                                    style: AppTheme.primaryButtonStyle.copyWith(
+                                      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 12)),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      onPressed: () {
-                                        _showRatingDialog(context, r);
-                                      },
-                                      icon: const Icon(Icons.rate_review),
-                                      label: Consumer<LanguageService>(
-                                        builder: (context, ls, _) => Text(ls.getLocalizedString('rate')),
-                                      ),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.green,
-                                        side: const BorderSide(color: Colors.green),
-                                      ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      _showRatingDialog(context, r);
+                                    },
+                                    icon: const Icon(Icons.rate_review, size: 18),
+                                    label: Text(ls.getLocalizedString('rate')),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppTheme.primaryGreen,
+                                      side: const BorderSide(color: AppTheme.primaryGreen),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
                                   ),
-                                ],
-                              ),
-                            ],
-                          ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                  ),
-          ),
+                      ),
+                    );
+                  },
+                ),
         ],
-      ),
       ),
     );
   }
@@ -298,57 +295,43 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
   }
 
   void _showRetailerContactDialog(BuildContext context, Map<String, dynamic> r) {
+    final ls = Provider.of<LanguageService>(context, listen: false);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Consumer<LanguageService>(
-          builder: (context, ls, _) => Text(ls.getLocalizedString('contact_retailer')),
-        ),
+        title: Text(ls.getLocalizedString('contact_retailer'), style: AppTheme.headingSmall),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Consumer<LanguageService>(
-              builder: (context, ls, _) => Text('${ls.getLocalizedString('retailer_label')}: ${r['name'] ?? r['username'] ?? r['phone'] ?? r['id']}'),
-            ),
+            Text('${ls.getLocalizedString('retailer_label')}: ${r['name'] ?? r['username'] ?? r['phone'] ?? r['id']}', style: AppTheme.bodyLarge),
             const SizedBox(height: 8),
-            if ((r['address'] ?? '').toString().isNotEmpty) Text(r['address']),
+            if ((r['address'] ?? '').toString().isNotEmpty) Text(r['address'], style: AppTheme.bodySmall),
             const SizedBox(height: 16),
-            Consumer<LanguageService>(
-              builder: (context, ls, _) => Text(ls.getLocalizedString('contact_information')),
-            ),
+            Text(ls.getLocalizedString('contact_information'), style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Consumer<LanguageService>(
-              builder: (context, ls, _) => Text('${ls.getLocalizedString('phone')}: ${r['phone'] ?? '-'}'),
-            ),
+            Text('${ls.getLocalizedString('phone')}: ${r['phone'] ?? '-'}', style: AppTheme.bodyLarge),
             if ((r['email'] ?? '').toString().isNotEmpty)
-              Consumer<LanguageService>(
-                builder: (context, ls, _) => Text('${ls.getLocalizedString('email')}: ${r['email']}'),
-              ),
+              Text('${ls.getLocalizedString('email')}: ${r['email']}', style: AppTheme.bodyLarge),
           ],
         ),
         actions: [
-          Consumer<LanguageService>(
-            builder: (context, ls, _) => TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(ls.getLocalizedString('close')),
-            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(ls.getLocalizedString('close'), style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Consumer<LanguageService>(
-                    builder: (context, ls, _) => Text(ls.getLocalizedString('contact_request_sent')),
-                  ),
-                  backgroundColor: Colors.green,
+                  content: Text(ls.getLocalizedString('contact_request_sent')),
+                  backgroundColor: AppTheme.primaryGreen,
                 ),
               );
             },
-            child: Consumer<LanguageService>(
-              builder: (context, ls, _) => Text(ls.getLocalizedString('send_request')),
-            ),
+            style: AppTheme.primaryButtonStyle,
+            child: Text(ls.getLocalizedString('send_request')),
           ),
         ],
       ),
@@ -358,31 +341,26 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
   void _showRatingDialog(BuildContext context, Map<String, dynamic> retailer) {
     double selectedRating = 0.0;
     final reviewController = TextEditingController();
-    
+    final ls = Provider.of<LanguageService>(context, listen: false);
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Consumer<LanguageService>(
-            builder: (context, ls, _) => Text(ls.getLocalizedString('rate_retailer')),
-          ),
+          title: Text(ls.getLocalizedString('rate_retailer'), style: AppTheme.headingSmall),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Consumer<LanguageService>(
-                  builder: (context, ls, _) => Text(
-                    '${ls.getLocalizedString('retailer_label')}: ${retailer['name'] ?? retailer['username'] ?? retailer['phone'] ?? retailer['id']}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                Text(
+                  '${ls.getLocalizedString('retailer_label')}: ${retailer['name'] ?? retailer['username'] ?? retailer['phone'] ?? retailer['id']}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                Consumer<LanguageService>(
-                  builder: (context, ls, _) => Text(
-                    ls.getLocalizedString('select_rating'),
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                Text(
+                  ls.getLocalizedString('select_rating'),
+                  style: const TextStyle(fontSize: 16),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -405,20 +383,15 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
                 ),
                 if (selectedRating > 0) ...[
                   const SizedBox(height: 16),
-                  Consumer<LanguageService>(
-                    builder: (context, ls, _) => Text(
-                      ls.getLocalizedString('write_review_optional'),
-                      style: const TextStyle(fontSize: 14),
-                    ),
+                  Text(
+                    ls.getLocalizedString('write_review_optional'),
+                    style: const TextStyle(fontSize: 14),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: reviewController,
-                    decoration: InputDecoration(
-                      hintText: Provider.of<LanguageService>(context, listen: false).getLocalizedString('review_hint'),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    decoration: AppTheme.inputDecoration.copyWith(
+                      hintText: ls.getLocalizedString('review_hint'),
                     ),
                     maxLines: 3,
                   ),
@@ -427,11 +400,9 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
             ),
           ),
           actions: [
-            Consumer<LanguageService>(
-              builder: (context, ls, _) => TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(ls.getLocalizedString('cancel_btn')),
-              ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(ls.getLocalizedString('cancel_btn'), style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: selectedRating > 0
@@ -459,10 +430,8 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Consumer<LanguageService>(
-                              builder: (context, ls, _) => Text(ls.getLocalizedString('review_submitted')),
-                            ),
-                            backgroundColor: Colors.green,
+                            content: Text(ls.getLocalizedString('review_submitted')),
+                            backgroundColor: AppTheme.primaryGreen,
                           ),
                         );
                       } catch (e) {
@@ -471,19 +440,14 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Error submitting review: $e'),
-                            backgroundColor: Colors.red,
+                            backgroundColor: AppTheme.errorRed,
                           ),
                         );
                       }
                     }
                   : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              child: Consumer<LanguageService>(
-                builder: (context, ls, _) => Text(ls.getLocalizedString('submit')),
-              ),
+              style: AppTheme.primaryButtonStyle,
+              child: Text(ls.getLocalizedString('submit')),
             ),
           ],
         ),

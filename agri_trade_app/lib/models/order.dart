@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'trade_enums.dart';
 
 class Order {
   final String id;
@@ -12,6 +13,9 @@ class Order {
   final String notes;
   final DateTime createdAt;
   final String status; // pending/accepted/rejected
+  
+  // Phase 1: Trade Lifecycle Fields
+  final TradeState? tradeState;
 
   Order({
     required this.id,
@@ -25,10 +29,22 @@ class Order {
     required this.notes,
     required this.createdAt,
     this.status = 'pending',
+    this.tradeState,
   });
 
+  // Helper getter for typed status check
+  OrderStatus get orderStatus => OrderStatus.fromString(status);
+
+  // Helper getter for display status
+  String get displayStatus {
+    if (tradeState != null && tradeState != TradeState.pending) {
+      return tradeState!.toShortString();
+    }
+    return status;
+  }
+
   Map<String, dynamic> toMap() {
-    return {
+    final map = {
       'farmerId': farmerId,
       'crop': crop,
       'quantity': quantity,
@@ -40,6 +56,13 @@ class Order {
       'createdAt': Timestamp.fromDate(createdAt),
       'status': status,
     };
+    
+    // Only add tradeState if it's set
+    if (tradeState != null) {
+      map['tradeState'] = tradeState!.name;
+    }
+    
+    return map;
   }
 
   factory Order.fromDoc(String id, Map<String, dynamic> data) {
@@ -59,6 +82,9 @@ class Order {
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.parse(data['createdAt'] as String),
       status: (data['status'] as String?) ?? 'pending',
+      tradeState: data['tradeState'] != null 
+          ? TradeState.fromString(data['tradeState'] as String) 
+          : null,
     );
   }
 }

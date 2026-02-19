@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -470,10 +469,34 @@ class AuthService with ChangeNotifier {
       debugPrint('Error loading user by phone: $e');
       // Only throw for actual network timeouts, not for unavailable/cache issues
       if (e is Exception && e.toString().contains('timed out')) {
-        throw e;
+        rethrow;
       }
       // For other errors including unavailable, treat as user not found
       return false;
+    }
+  }
+
+  // Update user type for current user
+  Future<void> updateUserType(String userType) async {
+    if (_user == null && _phone == null) {
+      throw Exception('No authenticated user found');
+    }
+    
+    try {
+      final docId = _phone ?? _user!.uid; // Use phone or uid as doc ID
+      
+      await _firestore.collection('users').doc(docId).set({
+        'userType': userType,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
+      _userType = userType;
+      notifyListeners();
+      
+      debugPrint('User type updated to: $userType');
+    } catch (e) {
+      debugPrint('Error updating user type: $e');
+      throw Exception('Failed to update user type');
     }
   }
 

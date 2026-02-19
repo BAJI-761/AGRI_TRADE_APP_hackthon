@@ -1,0 +1,8 @@
+﻿
+  error - The constructor being 
+called isn't a const 
+constructor - lib\screens\retail
+er\inventory_management.dart:127
+:35 - const_with_non_const
+
+

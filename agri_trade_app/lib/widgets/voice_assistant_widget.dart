@@ -381,7 +381,7 @@ class _VoiceAssistantWidgetState extends State<VoiceAssistantWidget>
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
                 ),
-                child: Text('Clear History'),
+                child: const Text('Clear History'),
               ),
             ],
           ],
@@ -406,19 +406,15 @@ class FloatingVoiceButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<VoiceService>(
       builder: (context, voiceService, child) {
-        return Positioned(
-          bottom: 20,
-          right: 20,
-          child: FloatingActionButton(
-            onPressed: voiceService.isListening 
-                ? voiceService.stopListening 
-                : voiceService.startListening,
-            backgroundColor: voiceService.isListening ? Colors.red : Colors.green,
-            child: Icon(
-              voiceService.isListening ? Icons.stop : Icons.mic,
-              color: Colors.white,
-              size: 30,
-            ),
+        return FloatingActionButton(
+          onPressed: voiceService.isListening 
+              ? voiceService.stopListening 
+              : voiceService.startListening,
+          backgroundColor: voiceService.isListening ? Colors.red : Colors.green,
+          child: Icon(
+            voiceService.isListening ? Icons.stop : Icons.mic,
+            color: Colors.white,
+            size: 30,
           ),
         );
       },

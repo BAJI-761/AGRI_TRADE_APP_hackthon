@@ -3,12 +3,15 @@ import 'package:provider/provider.dart';
 import '../services/voice_service.dart';
 import '../widgets/voice_assistant_widget.dart';
 import '../services/offline_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/navigation_helper.dart';
+import '../widgets/app_gradient_scaffold.dart';
 
 class VoiceSettingsScreen extends StatefulWidget {
   const VoiceSettingsScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _VoiceSettingsScreenState createState() => _VoiceSettingsScreenState();
 }
 
@@ -16,456 +19,342 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return NavigationHelper(
-      child: Scaffold(
-        appBar: NavigationAppBar(
-          title: 'Voice Settings',
-          backgroundColor: Colors.green,
-          foregroundColor: Colors.white,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.help),
-              onPressed: () => Provider.of<VoiceService>(context, listen: false)
-                  .provideHelp('general'),
-            ),
-          ],
-        ),
-      body: Consumer<VoiceService>(
-        builder: (context, voiceService, child) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: AppGradientScaffold(
+        headerHeightFraction: 0.2,
+        headerChildren: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Voice Status Card
-                Card(
-                  color: voiceService.isVoiceEnabled 
-                      ? Colors.green[50] 
-                      : Colors.red[50],
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Voice Settings', // Should be localized if possible
+                      style: AppTheme.headingMedium.copyWith(color: Colors.white),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.help, color: Colors.white),
+                  onPressed: () => Provider.of<VoiceService>(context, listen: false)
+                      .provideHelp('general'),
+                ),
+              ],
+            ),
+          ),
+        ],
+        bodyChildren: [
+          Consumer<VoiceService>(
+            builder: (context, voiceService, child) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Voice Status Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: AppTheme.cardDecoration.copyWith(
+                      color: voiceService.isVoiceEnabled 
+                          ? AppTheme.primaryGreen.withOpacity(0.05)
+                          : AppTheme.errorRed.withOpacity(0.05),
+                      border: Border.all(
+                        color: voiceService.isVoiceEnabled 
+                            ? AppTheme.primaryGreen.withOpacity(0.3)
+                            : AppTheme.errorRed.withOpacity(0.3),
+                      ),
+                    ),
                     child: Row(
                       children: [
-                        Icon(
-                          voiceService.isVoiceEnabled 
-                              ? Icons.volume_up 
-                              : Icons.volume_off,
-                          color: voiceService.isVoiceEnabled 
-                              ? Colors.green 
-                              : Colors.red,
-                          size: 30,
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            voiceService.isVoiceEnabled 
+                                ? Icons.mic 
+                                : Icons.mic_off,
+                            color: voiceService.isVoiceEnabled 
+                                ? AppTheme.primaryGreen
+                                : AppTheme.errorRed,
+                            size: 28,
+                          ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 voiceService.isVoiceEnabled 
-                                    ? 'Voice Features Enabled' 
-                                    : 'Voice Features Disabled',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                                    ? 'Voice Active' 
+                                    : 'Voice Disabled',
+                                style: AppTheme.headingSmall.copyWith(
                                   color: voiceService.isVoiceEnabled 
-                                      ? Colors.green 
-                                      : Colors.red,
+                                      ? AppTheme.primaryGreen
+                                      : AppTheme.errorRed,
+                                  fontSize: 18,
                                 ),
                               ),
+                              const SizedBox(height: 4),
                               Text(
                                 voiceService.isVoiceEnabled 
-                                    ? 'You can use voice commands to navigate the app'
-                                    : 'Enable voice features to use voice commands',
-                                style: const TextStyle(fontSize: 14),
+                                    ? 'Tap microphone to speak'
+                                    : 'Enable to use voice commands',
+                                style: AppTheme.bodySmall,
                               ),
                             ],
                           ),
                         ),
                         Switch(
                           value: voiceService.isVoiceEnabled,
+                          activeColor: AppTheme.primaryGreen,
                           onChanged: (value) => voiceService.toggleVoiceEnabled(),
                         ),
                       ],
                     ),
                   ),
-                ),
-                
-                const SizedBox(height: 20),
-
-                // App Preferences
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Settings Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text('Configuration', style: AppTheme.headingSmall),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: AppTheme.cardDecoration,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'App Preferences',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Notifications (placeholder)'),
-                            Switch(
-                              value: true,
-                              onChanged: (v) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Notifications not implemented yet')),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            final confirmed = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Text('Clear Cache'),
-                                    content: const Text('Clear offline cached data?'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Clear')),
-                                    ],
-                                  ),
-                                ) ??
-                                false;
-                            if (!confirmed) return;
-                            await Provider.of<OfflineService>(context, listen: false).clearAllOfflineData();
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Offline data cleared')),
-                            );
-                          },
-                          icon: const Icon(Icons.cleaning_services),
-                          label: const Text('Clear Offline Cache'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // Language Settings
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Language Settings',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Current Language'),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.blue[100],
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                voiceService.currentLanguage == 'en' ? 'English' : 'తెలుగు',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue[800],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () => voiceService.setLanguage('en'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: voiceService.currentLanguage == 'en' 
-                                    ? Colors.blue 
-                                    : Colors.grey[300],
-                                foregroundColor: voiceService.currentLanguage == 'en' 
-                                    ? Colors.white 
-                                    : Colors.black,
-                              ),
-                              child: const Text('English'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => voiceService.setLanguage('te'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: voiceService.currentLanguage == 'te' 
-                                    ? Colors.blue 
-                                    : Colors.grey[300],
-                                foregroundColor: voiceService.currentLanguage == 'te' 
-                                    ? Colors.white 
-                                    : Colors.black,
-                              ),
-                              child: const Text('తెలుగు'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Context Settings
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Voice Context',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Set the context to get relevant voice commands for your role.',
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildContextButton(
-                              'General',
-                              'general',
-                              Icons.public,
-                              voiceService.currentContext == 'general',
-                              voiceService,
-                            ),
-                            _buildContextButton(
-                              'Farmer',
-                              'farmer',
-                              Icons.agriculture,
-                              voiceService.currentContext == 'farmer',
-                              voiceService,
-                            ),
-                            _buildContextButton(
-                              'Retailer',
-                              'retailer',
-                              Icons.store,
-                              voiceService.currentContext == 'retailer',
-                              voiceService,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Training Mode
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Training Mode',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue,
-                                  ),
-                                ),
-                                Text(
-                                  'Practice voice commands with feedback',
-                                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                                ),
-                              ],
-                            ),
-                            Switch(
-                              value: voiceService.isTrainingMode,
-                              onChanged: (value) => value 
-                                  ? voiceService.startTrainingMode()
-                                  : voiceService.stopTrainingMode(),
-                            ),
-                          ],
-                        ),
-                        if (voiceService.isTrainingMode) ...[
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.blue[200]!),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.info, color: Colors.blue),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Training mode is active. Try different voice commands and get feedback on recognition accuracy.',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Voice Assistant Widget
-                const Text(
-                  'Voice Assistant',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Test your voice commands with the assistant below:',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 16),
-                
-                VoiceAssistantWidget(
-                  userType: voiceService.currentContext,
-                  onCommandRecognized: (command) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Command recognized: $command'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  },
-                  showVisualFeedback: true,
-                  showAdvancedControls: false,
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Command History
-                if (voiceService.voiceCommandHistory.isNotEmpty) ...[
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                        _buildSettingRow(
+                          'Language',
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                'Recent Commands',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                              ElevatedButton(
-                                onPressed: () => voiceService.clearHistory(),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange,
-                                  foregroundColor: Colors.white,
-                                ),
-                                child: const Text('Clear'),
-                              ),
+                              _buildLangOption('English', 'en', voiceService),
+                              const SizedBox(width: 8),
+                              _buildLangOption('తెలుగు', 'te', voiceService),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 200,
-                            child: ListView.builder(
-                              itemCount: voiceService.voiceCommandHistory.length,
-                              itemBuilder: (context, index) {
-                                final command = voiceService.voiceCommandHistory[index];
-                                return Card(
-                                  margin: const EdgeInsets.symmetric(vertical: 4),
-                                  child: ListTile(
-                                    leading: const Icon(Icons.history, color: Colors.blue),
-                                    title: Text(
-                                      command,
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
-                                    trailing: Text(
-                                      '${index + 1}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
+                        ),
+                        Divider(height: 32, color: Colors.grey.withOpacity(0.1)),
+                        _buildSettingRow(
+                          'Role Context',
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _buildContextChip('General', 'general', Icons.public, voiceService),
+                              _buildContextChip('Farmer', 'farmer', Icons.agriculture, voiceService),
+                              _buildContextChip('Retailer', 'retailer', Icons.store, voiceService),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Tools Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text('Tools', style: AppTheme.headingSmall),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  Container(
+                    decoration: AppTheme.cardDecoration,
+                    child: Column(
+                      children: [
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          title: const Text('Training Mode', style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: const Text('Practice voice commands with feedback'),
+                          trailing: Switch(
+                            value: voiceService.isTrainingMode,
+                            activeColor: AppTheme.primaryGreen,
+                            onChanged: (value) => value 
+                                ? voiceService.startTrainingMode()
+                                : voiceService.stopTrainingMode(),
+                          ),
+                        ),
+                        Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          title: const Text('Clear Offline Cache', style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: const Text('Remove stored offline data'),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline, color: AppTheme.secondaryAmber),
+                            onPressed: () => _showClearCacheDialog(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  if (voiceService.isTrainingMode) ...[
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, color: Colors.blue),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Training Mode active. Try speaking commands to test recognition accuracy.',
+                              style: AppTheme.bodySmall.copyWith(color: Colors.blue[800]),
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ],
+
+                  const SizedBox(height: 32),
+                  
+                  // Voice Assistant Test Area
+                  Center(
+                    child: VoiceAssistantWidget(
+                      userType: voiceService.currentContext,
+                      onCommandRecognized: (command) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Recognized: $command'),
+                            backgroundColor: AppTheme.primaryGreen,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      showVisualFeedback: true,
+                      showAdvancedControls: false,
+                    ),
                   ),
+                  const SizedBox(height: 32),
                 ],
-                
-                const SizedBox(height: 20),
-              ],
-            ),
-          );
-        },
+              );
+            },
+          ),
+        ],
       ),
-    ),
     );
   }
 
-  Widget _buildContextButton(
-    String label,
-    String context,
-    IconData icon,
-    bool isSelected,
-    VoiceService voiceService,
-  ) {
-    return ElevatedButton.icon(
-      onPressed: () => voiceService.setContext(context),
-      icon: Icon(icon, size: 20),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.blue : Colors.grey[300],
-        foregroundColor: isSelected ? Colors.white : Colors.black,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        shape: RoundedRectangleBorder(
+  Widget _buildSettingRow(String label, Widget content) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        content,
+      ],
+    );
+  }
+
+  Widget _buildLangOption(String label, String code, VoiceService service) {
+    final isSelected = service.currentLanguage == code;
+    return GestureDetector(
+      onTap: () => service.setLanguage(code),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryGreen : Colors.grey[100],
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? AppTheme.primaryGreen : Colors.grey[300]!),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: AppTheme.primaryGreen.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ] : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppTheme.textDark,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildContextChip(String label, String context, IconData icon, VoiceService service) {
+    final isSelected = service.currentContext == context;
+    return ChoiceChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: isSelected ? Colors.white : AppTheme.textSecondary),
+          const SizedBox(width: 6),
+          Text(label),
+        ],
+      ),
+      selected: isSelected,
+      onSelected: (bool selected) {
+        if (selected) service.setContext(context);
+      },
+      selectedColor: AppTheme.primaryGreen,
+      backgroundColor: Colors.grey[100],
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : AppTheme.textDark,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    );
+  }
+
+  Future<void> _showClearCacheDialog(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Clear Cache'),
+        content: const Text('Delete all offline data? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true), 
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorRed),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (confirmed && mounted) {
+      // ignore: use_build_context_synchronously
+      final offlineService = Provider.of<OfflineService>(context, listen: false);
+      await offlineService.clearAllOfflineData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Offline data cleared'), backgroundColor: AppTheme.primaryGreen),
+        );
+      }
+    }
+  }
 }
+

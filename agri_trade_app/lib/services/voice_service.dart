@@ -112,11 +112,12 @@ class VoiceService extends ChangeNotifier {
     await _flutterTts.setSpeechRate(0.5); // Slower speech for better understanding
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
+    await _flutterTts.awaitSpeakCompletion(true);
     
-    _flutterTts.setCompletionHandler(() {
-      _isSpeaking = false;
-      notifyListeners();
-    });
+    // _flutterTts.setCompletionHandler is not needed when awaitSpeakCompletion(true) is used
+    // but we can keep listener notification if we want to track state manually, 
+    // though for sequential flow await is better.
+    // For now, let's rely on await.
   }
 
   Future<void> _loadLanguagePreference() async {
@@ -335,7 +336,12 @@ class VoiceService extends ChangeNotifier {
       _isSpeaking = true;
       notifyListeners();
       
-      await _flutterTts.speak(text);
+      try {
+        await _flutterTts.speak(text);
+      } finally {
+        _isSpeaking = false;
+        notifyListeners();
+      }
     }
   }
 

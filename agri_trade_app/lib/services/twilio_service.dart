@@ -5,12 +5,12 @@ import 'sms_provider_interface.dart';
 
 class TwilioService implements SMSProvider {
   // Real mode by default. You can override with --dart-define=TWILIO_TEST_MODE=true
-  static final bool _isTestMode = const String.fromEnvironment('TWILIO_TEST_MODE', defaultValue: 'false') == 'true';
+  static const bool _isTestMode = String.fromEnvironment('TWILIO_TEST_MODE', defaultValue: 'false') == 'true';
 
   // Prefer environment (dart-define) values to avoid hardcoding secrets in app code
-  static final String _accountSid = const String.fromEnvironment('TWILIO_ACCOUNT_SID', defaultValue: '');
-  static final String _authToken = const String.fromEnvironment('TWILIO_AUTH_TOKEN', defaultValue: '');
-  static final String _phoneNumber = const String.fromEnvironment('TWILIO_PHONE_NUMBER', defaultValue: '');
+  static const String _accountSid = String.fromEnvironment('TWILIO_ACCOUNT_SID', defaultValue: '');
+  static const String _authToken = String.fromEnvironment('TWILIO_AUTH_TOKEN', defaultValue: '');
+  static const String _phoneNumber = String.fromEnvironment('TWILIO_PHONE_NUMBER', defaultValue: '');
 
   // Legacy placeholders (only used if env not provided) - replace with your actual values via dart-define
   // IMPORTANT: Never commit real credentials! Pass them via --dart-define at build time:

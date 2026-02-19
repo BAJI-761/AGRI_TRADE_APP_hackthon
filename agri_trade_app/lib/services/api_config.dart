@@ -1,9 +1,8 @@
-import 'package:flutter/foundation.dart';
 
 /// Centralized API configuration for market data.
 /// Replace the base URLs with your backend endpoints or provide via --dart-define.
 class ApiConfig {
-	static final String baseUrl = const String.fromEnvironment(
+	static const String baseUrl = String.fromEnvironment(
 			'MARKET_API_BASE_URL',
 			defaultValue: '',
 	);

@@ -16,7 +16,6 @@ class NotificationService extends ChangeNotifier {
 
   Future<void> _initializeLocalNotifications() async {
     // Local notifications disabled for web compatibility to fix compilation errors
-    /*
     if (kIsWeb) return;
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -27,12 +26,11 @@ class NotificationService extends ChangeNotifier {
     );
 
     await _localNotifications.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: (details) {
         debugPrint('Notification tapped: ${details.payload}');
       },
     );
-    */
   }
 
   CollectionReference<Map<String, dynamic>> get _notificationsCol =>
@@ -131,7 +129,7 @@ class NotificationService extends ChangeNotifier {
       await _createNotification(
         userId: farmerId,
         userType: 'farmer',
-        type: 'order_${status}',
+        type: 'order_$status',
         title: title,
         body: body,
         orderId: orderId,
@@ -179,7 +177,6 @@ class NotificationService extends ChangeNotifier {
 
   Future<void> _showLocalNotification(String title, String body, String? payload) async {
     // Local notifications disabled for web compatibility
-    /*
     if (kIsWeb) return;
 
     const androidDetails = AndroidNotificationDetails(
@@ -196,13 +193,12 @@ class NotificationService extends ChangeNotifier {
     );
 
     await _localNotifications.show(
-      DateTime.now().millisecondsSinceEpoch % 100000,
-      title,
-      body,
-      details,
+      id: DateTime.now().millisecondsSinceEpoch % 100000,
+      title: title,
+      body: body,
+      notificationDetails: details,
       payload: payload,
     );
-    */
   }
 
   // Stream notifications for a user

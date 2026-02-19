@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import '../models/trade_enums.dart';
 import '../models/order.dart' as model;
 import 'notification_service.dart';
 
@@ -111,7 +112,10 @@ class OrderService {
   }
 
   Future<void> acceptOrder(String orderId) async {
-    await _ordersCol.doc(orderId).update({'status': 'accepted'});
+    await _ordersCol.doc(orderId).update({
+      'status': 'accepted',
+      'tradeState': TradeState.accepted.name,
+    });
     
     // Notify farmer about order acceptance
     if (_notificationService != null) {

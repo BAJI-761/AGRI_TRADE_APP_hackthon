@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import '../services/voice_service.dart';
 import '../services/language_service.dart';
-import '../services/auth_service.dart';
 import '../services/sms_provider_interface.dart';
+import '../theme/app_theme.dart';
 import 'otp_verification_screen.dart';
+import '../widgets/primary_button.dart';
+import '../widgets/glass_card_wrapper.dart';
 
 class PhoneVoiceInputScreen extends StatefulWidget {
   const PhoneVoiceInputScreen({super.key});
@@ -22,11 +25,15 @@ class _PhoneVoiceInputScreenState extends State<PhoneVoiceInputScreen>
   
   final TextEditingController _phoneController = TextEditingController();
   final FocusNode _phoneFocusNode = FocusNode();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  
   bool _isListening = false;
   bool _isValidating = false;
+  bool _isLoading = false;
   String _currentLanguage = 'en';
   bool _hasCheckedUser = false; // Prevent infinite loops
   int _retryCount = 0;
+  String _completePhoneNumber = '';
 
   @override
   void initState() {
@@ -121,16 +128,17 @@ class _PhoneVoiceInputScreenState extends State<PhoneVoiceInputScreen>
     // Listen for phone number with extended time
     final result = await voiceService.listenOnce(seconds: 25);
     
-    setState(() {
-      _isListening = false;
-    });
-    
-    _pulseController.stop();
+    if (mounted) {
+      setState(() {
+        _isListening = false;
+      });
+      _pulseController.stop();
+    }
     
     if (result.isNotEmpty) {
       _processPhoneNumber(result);
     } else {
-      _showRetryDialog();
+      if (mounted) _showRetryDialog();
     }
   }
 
@@ -243,7 +251,10 @@ class _PhoneVoiceInputScreenState extends State<PhoneVoiceInputScreen>
     try {
       final smsService = Provider.of<SMSProvider>(context, listen: false);
       final voiceService = Provider.of<VoiceService>(context, listen: false);
-      final phoneNumber = _phoneController.text;
+      final phoneNumber = _completePhoneNumber.isNotEmpty 
+          ? _completePhoneNumber 
+          : '+91${_phoneController.text}'; // Fallback
+      
       debugPrint('📞 Sending OTP to phone: $phoneNumber');
       
       final sent = await smsService.sendOTP(phoneNumber);
@@ -286,6 +297,24 @@ class _PhoneVoiceInputScreenState extends State<PhoneVoiceInputScreen>
           _isValidating = false;
         });
       }
+    }
+  }
+
+  void _verifyPhoneNumber() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      await _validateAndCheckUser();
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _handleVoiceInput() {
+    if (_isListening) {
+      final voiceService = Provider.of<VoiceService>(context, listen: false);
+      voiceService.stopListening();
+      setState(() => _isListening = false);
+    } else {
+      _startVoicePrompt();
     }
   }
 
@@ -343,14 +372,14 @@ class _PhoneVoiceInputScreenState extends State<PhoneVoiceInputScreen>
     );
   }
 
-  void _showErrorDialog() {
+  void _showErrorDialog([String? message]) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(_currentLanguage == 'te' ? 'లోపం' : 'Error'),
-        content: Text(_currentLanguage == 'te' 
+        content: Text(message ?? (_currentLanguage == 'te' 
             ? 'కొంత లోపం జరిగింది. మళ్లీ ప్రయత్నించండి.'
-            : 'Something went wrong. Please try again.'),
+            : 'Something went wrong. Please try again.')),
         actions: [
           TextButton(
             onPressed: () {
@@ -358,7 +387,7 @@ class _PhoneVoiceInputScreenState extends State<PhoneVoiceInputScreen>
             },
             child: Text(_currentLanguage == 'te' ? 'సరే' : 'OK'),
           ),
-          TextButton(
+          if (message == null) TextButton(
             onPressed: () {
               Navigator.pop(context);
               _hasCheckedUser = false; // Reset flag before retry
@@ -410,276 +439,117 @@ class _PhoneVoiceInputScreenState extends State<PhoneVoiceInputScreen>
 
   @override
   Widget build(BuildContext context) {
+    final languageService = Provider.of<LanguageService>(context);
+    final isTelugu = languageService.isTelugu;
+
     return Scaffold(
       body: Container(
-        width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.green.shade800,
-              Colors.green.shade400,
-              Colors.green.shade200,
-            ],
-          ),
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: AppTheme.premiumGradient),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-                
-                // Title
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Text(
-                    _currentLanguage == 'te' ? 'ఫోన్ నంబర్' : 'Phone Number',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 1.5,
+          child: Center(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                  24, 24, 24, 24 + MediaQuery.of(context).viewInsets.bottom),
+              child: GlassCardWrapper(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryGreen.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.phone_iphone,
+                        size: 40,
+                        color: AppTheme.primaryGreen,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Subtitle
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Text(
-                    _currentLanguage == 'te' 
-                        ? 'దయచేసి మీ ఫోన్ నంబర్ చెప్పండి'
-                        : 'Please say your phone number',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white.withValues(alpha: 0.9),
+                    const SizedBox(height: 24),
+                    Text(
+                      isTelugu ? 'లాగిన్' : 'Login',
+                      style: AppTheme.displayMedium.copyWith(
+                        color: AppTheme.primaryGreenDark,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                
-                const SizedBox(height: 40),
-                
-                // Voice Interface
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                      // Microphone Animation
-                      AnimatedBuilder(
-                        animation: _pulseAnimation,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _isListening ? _pulseAnimation.value : 1.0,
-                            child: Container(
-                              width: 200,
-                              height: 200,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _isListening 
-                                    ? Colors.red.withValues(alpha: 0.3)
-                                    : Colors.white.withValues(alpha: 0.2),
-                                border: Border.all(
-                                  color: _isListening 
-                                      ? Colors.red
-                                      : Colors.white,
-                                  width: 4,
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.mic,
-                                size: 80,
-                                color: _isListening ? Colors.red : Colors.white,
-                              ),
-                            ),
-                          );
+                    const SizedBox(height: 8),
+                    Text(
+                      isTelugu
+                          ? 'కొనసాగించడానికి మీ ఫోన్ నంబర్ ఎంటర్ చేయండి'
+                          : 'Enter your phone number to continue',
+                      textAlign: TextAlign.center,
+                      style: AppTheme.bodyMedium
+                          .copyWith(color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    Form(
+                      key: _formKey,
+                      child: IntlPhoneField(
+                        controller: _phoneController,
+                        decoration: InputDecoration(
+                          labelText: isTelugu ? 'ఫోన్ నంబర్' : 'Phone Number',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(),
+                          ),
+                          counterText: ""
+                        ),
+                        initialCountryCode: 'IN',
+                        onChanged: (phone) {
+                          _completePhoneNumber = phone.completeNumber;
                         },
+                        onCountryChanged: (country) {
+                          // Optional: update hint or validation logic
+                        },
+                        style: AppTheme.headingMedium.copyWith(fontSize: 18),
+                        flagsButtonPadding: const EdgeInsets.only(left: 10),
+                        showDropdownIcon: false, // Cleaner look
+                        dropdownIconPosition: IconPosition.trailing,
                       ),
-                      
-                      const SizedBox(height: 40),
-                      
-                      // Status Text
-                      FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: Text(
-                                 _isListening 
-                                     ? (_currentLanguage == 'te' 
-                                         ? 'వినికిడి... ఫోన్ నంబర్ నెమ్మదిగా చెప్పండి (20 సెకన్లు)'
-                                         : 'Listening... Say your phone number slowly (20 seconds)')
-                                     : (_currentLanguage == 'te' 
-                                         ? 'ఫోన్ నంబర్ నెమ్మదిగా చెప్పండి లేదా టైప్ చేయండి'
-                                         : 'Say your phone number slowly or type it'),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 40),
-                      
-                      // Phone Number Display
-                      if (_phoneController.text.isNotEmpty)
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(15),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  _currentLanguage == 'te' ? 'మీ ఫోన్ నంబర్:' : 'Your phone number:',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _phoneController.text,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      
-                      const SizedBox(height: 40),
-                      
-                      // Manual Input Option
-                      FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: TextField(
-                            controller: _phoneController,
-                            focusNode: _phoneFocusNode,
-                            autofocus: true,
-                            keyboardType: TextInputType.number,
-                            maxLength: 10,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                            ),
-                            decoration: InputDecoration(
-                              counterText: '',
-                              hintText: _currentLanguage == 'te' 
-                                  ? 'ఫోన్ నంబర్ ఎంటర్ చేయండి'
-                                  : 'Enter phone number',
-                              hintStyle: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.7),
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  width: 2,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      ],
                     ),
-                  ),
+                    
+                    const SizedBox(height: 24),
+                    PrimaryButton(
+                      label: isTelugu ? 'OTP ని పంపండి' : 'Send OTP',
+                      onPressed: _isLoading ? null : _verifyPhoneNumber,
+                      isLoading: _isLoading,
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    Text(
+                      isTelugu ? 'లేదా, క్లిక్ చేసి నంబర్ చెప్పండి' : 'Or, tap to speak number',
+                      style: AppTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 64,
+                      width: 64,
+                      child: FloatingActionButton(
+                        onPressed: _handleVoiceInput,
+                        backgroundColor: _isListening
+                            ? AppTheme.errorRed
+                            : AppTheme.primaryGreen,
+                        child: Icon(_isListening ? Icons.mic_off : Icons.mic,
+                            size: 30),
+                      ),
+                    ),
+                  ],
                 ),
-                
-                // Action Buttons
-                Padding(
-                  padding: const EdgeInsets.only(top: 16, bottom: 8),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _isValidating ? null : _startVoicePrompt,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withValues(alpha: 0.2),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                            ),
-                            child: Text(
-                              _currentLanguage == 'te' ? 'మళ్లీ చెప్పండి' : 'Speak Again',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                               Expanded(
-                                 child: ElevatedButton(
-                                   onPressed: _isValidating ? null : _validateAndCheckUser,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.green.shade800,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                            ),
-                                   child: _isValidating
-                                       ? const SizedBox(
-                                           width: 20,
-                                           height: 20,
-                                           child: CircularProgressIndicator(
-                                             strokeWidth: 2,
-                                             valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-                                           ),
-                                         )
-                                       : Text(
-                                           _currentLanguage == 'te' ? 'కొనసాగించండి' : 'Continue',
-                                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                         ),
-                                 ),
-                               ),
-                             ],
-                           ),
-                         ),
-                       ),
-                     ],
-                   ),
-                 ),
-               ),
-             ),
-           );
-         }
-       }
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

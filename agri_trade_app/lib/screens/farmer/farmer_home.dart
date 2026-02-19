@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../accessibility_demo.dart';
 import 'crop_prediction.dart';
 import 'retailer_search.dart';
@@ -15,6 +14,14 @@ import '../feedback_screen.dart';
 import '../notifications_screen.dart';
 import '../../services/notification_service.dart';
 
+import '../../theme/app_theme.dart';
+import '../../widgets/app_gradient_scaffold.dart';
+import '../../widgets/app_header_bar.dart';
+import '../../widgets/location_badge.dart';
+import '../../widgets/section_header.dart';
+import '../../widgets/action_card.dart';
+import '../../widgets/info_list_tile.dart';
+
 class FarmerHome extends StatefulWidget {
   const FarmerHome({super.key});
 
@@ -25,306 +32,180 @@ class FarmerHome extends StatefulWidget {
 class _FarmerHomeState extends State<FarmerHome> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Consumer<LanguageService>(
-          builder: (context, ls, _) => Text(ls.getLocalizedString('farmer_dashboard')),
+    final langService = Provider.of<LanguageService>(context);
+    final authService = Provider.of<AuthService>(context);
+    final notificationService = Provider.of<NotificationService>(context);
+    final isTe = langService.isTelugu;
+
+    return AppGradientScaffold(
+      headerChildren: [
+        AppHeaderBar(
+          avatarIcon: Icons.person_rounded,
+          greeting: langService.getLocalizedString('welcome'),
+          userName: authService.name ?? langService.getLocalizedString('farmer'),
+          unreadCount: notificationService.unreadCount,
+          onNotificationTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+          ),
+          menuItems: [
+            _buildMenuItem('profile', Icons.person_outline,
+                langService.getLocalizedString('profile')),
+            _buildMenuItem('settings', Icons.settings_outlined,
+                langService.getLocalizedString('settings')),
+            _buildMenuItem('feedback', Icons.feedback_outlined,
+                langService.getLocalizedString('feedback')),
+            _buildMenuItem('signout', Icons.logout,
+                langService.getLocalizedString('sign_out')),
+          ],
+          onMenuSelected: (value) => _handleMenuSelection(context, value),
         ),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        actions: [
-          Consumer<NotificationService>(
-            builder: (context, notificationService, _) {
-              final unreadCount = notificationService.unreadCount;
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const NotificationsScreen()),
-                    ),
-                  ),
-                  if (unreadCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          unreadCount > 99 ? '99+' : '$unreadCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
+        
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: LocationBadge(
+            location: authService.address ?? 'Unknown Location',
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              switch (value) {
-                case 'profile':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RegistrationProfileScreen(
-                        phoneNumber: Provider.of<AuthService>(context, listen: false).phone ?? '',
-                      ),
-                    ),
-                  );
-                  break;
-                case 'settings':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const VoiceSettingsScreen(),
-                    ),
-                  );
-                  break;
-                case 'feedback':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const FeedbackScreen()),
-                  );
-                  break;
-                case 'signout':
-                  final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: Consumer<LanguageService>(
-                            builder: (context, ls, _) => Text(ls.getLocalizedString('sign_out_confirm_title')),
-                          ),
-                          content: Consumer<LanguageService>(
-                            builder: (context, ls, _) => Text(ls.getLocalizedString('sign_out_confirm_message')),
-                          ),
-                          actions: [
-                            Consumer<LanguageService>(
-                              builder: (context, ls, _) => TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: Text(ls.getLocalizedString('cancel_btn')),
-                              ),
-                            ),
-                            Consumer<LanguageService>(
-                              builder: (context, ls, _) => TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: Text(ls.getLocalizedString('sign_out')),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ) ??
-                      false;
-                  if (confirmed) {
-                    await Provider.of<AuthService>(context, listen: false).logout();
-                    if (!mounted) return;
-                    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-                  }
-                  break;
-              }
-            },
-            itemBuilder: (context) {
-              final ls = Provider.of<LanguageService>(context, listen: false);
-              return [
-                PopupMenuItem(value: 'profile', child: Text(ls.getLocalizedString('profile'))),
-                PopupMenuItem(value: 'settings', child: Text(ls.getLocalizedString('settings'))),
-                PopupMenuItem(value: 'feedback', child: Text(ls.getLocalizedString('feedback'))),
-                PopupMenuItem(value: 'signout', child: Text(ls.getLocalizedString('sign_out'))),
-              ];
-            },
-          ),
-        ],
-      ),
-      body: Consumer<AuthService>(
-        builder: (context, authService, child) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Welcome Card
-                Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Consumer<LanguageService>(
-                          builder: (context, ls, _) => Text(
-                            '${ls.getLocalizedString('welcome')}, ${authService.name ?? ls.getLocalizedString('farmer')}!',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Consumer<LanguageService>(
-                          builder: (context, ls, _) => Text(
-                            '${ls.getLocalizedString('location')}: ${authService.address ?? '-'}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                
-                // Features Grid
-                GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.1,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                      _buildFeatureCard(
-                        context,
-                        Provider.of<LanguageService>(context, listen: false).getLocalizedString('crop_prediction'),
-                        Icons.agriculture,
-                        Colors.green,
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CropPredictionScreen(),
-                          ),
-                        ),
-                      ),
-                      _buildFeatureCard(
-                        context,
-                        Provider.of<LanguageService>(context, listen: false).getLocalizedString('create_order'),
-                        Icons.point_of_sale,
-                        Colors.purple,
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CreateOrderScreen(),
-                          ),
-                        ),
-                      ),
-                      _buildFeatureCard(
-                        context,
-                        Provider.of<LanguageService>(context, listen: false).getLocalizedString('my_orders'),
-                        Icons.shopping_cart,
-                        Colors.teal,
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const FarmerOrdersScreen(),
-                          ),
-                        ),
-                      ),
-                      _buildFeatureCard(
-                        context,
-                        Provider.of<LanguageService>(context, listen: false).getLocalizedString('find_retailers'),
-                        Icons.store_mall_directory,
-                        Colors.blue,
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RetailerSearchScreen(),
-                          ),
-                        ),
-                      ),
-                      _buildFeatureCard(
-                        context,
-                        Provider.of<LanguageService>(context, listen: false).getLocalizedString('market_prices'),
-                        Icons.trending_up,
-                        Colors.orange,
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const MarketInsightsScreen(),
-                          ),
-                        ),
-                      ),
-                      _buildFeatureCard(
-                        context,
-                        Provider.of<LanguageService>(context, listen: false).getLocalizedString('accessibility'),
-                        Icons.accessibility_new,
-                        Colors.purple,
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AccessibilityDemoScreen(),
-                          ),
-                        ),
-                      ),
-                    ],
-                ),
-                const SizedBox(height: 20),
-              ],
+        ),
+      ],
+      bodyChildren: [
+        SectionHeader(title: langService.getLocalizedString('quick_actions')),
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 1.1,
+          children: [
+            ActionCard(
+              title: langService.getLocalizedString('create_order'),
+              icon: Icons.add_circle_outline,
+              color: AppTheme.primaryGreen,
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const CreateOrderScreen())),
             ),
-          );
-        },
-      ),
-      // Removed floating voice button to fix ParentDataWidget error
+            ActionCard(
+              title: langService.getLocalizedString('crop_prediction'),
+              icon: Icons.psychology_outlined,
+              color: AppTheme.secondaryAmber,
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const CropPredictionScreen())),
+            ),
+            ActionCard(
+              title: langService.getLocalizedString('my_orders'),
+              icon: Icons.list_alt,
+              color: AppTheme.accentBlue,
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const FarmerOrdersScreen())),
+            ),
+            ActionCard(
+              title: langService.getLocalizedString('find_retailers'),
+              icon: Icons.store_outlined,
+              color: Colors.purple,
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const RetailerSearchScreen())),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        SectionHeader(title: langService.getLocalizedString('market_insights')),
+        const SizedBox(height: 16),
+        
+        InfoListTile(
+          icon: Icons.trending_up,
+          color: Colors.orange,
+          title: langService.getLocalizedString('market_prices'),
+          subtitle: isTe ? 'నేటి మార్కెట్ ధరలు తనిఖీ చేయండి' : 'Check today\'s mandi prices',
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const MarketInsightsScreen())),
+        ),
+        
+        const SizedBox(height: 16),
+        const SectionHeader(title: 'More'),
+        const SizedBox(height: 16),
+        
+        InfoListTile(
+          icon: Icons.accessibility_new,
+          color: Colors.purple,
+          title: langService.getLocalizedString('accessibility'),
+          subtitle: 'Accessibility Demo',
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const AccessibilityDemoScreen())),
+        ),
+      ],
     );
   }
 
-  Widget _buildFeatureCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return Card(
-      elevation: 4,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 48,
-                color: color,
-              ),
-              const SizedBox(height: 12),
-              Flexible(
-                child: Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                ),
-              ),
-            ],
-          ),
-        ),
+  PopupMenuItem<String> _buildMenuItem(
+      String value, IconData icon, String text) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppTheme.textSecondary),
+          const SizedBox(width: 12),
+          Text(text, style: AppTheme.bodyMedium),
+        ],
       ),
     );
+  }
+
+  Future<void> _handleMenuSelection(BuildContext context, String value) async {
+    final ls = Provider.of<LanguageService>(context, listen: false);
+
+    switch (value) {
+      case 'profile':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RegistrationProfileScreen(
+              phoneNumber:
+                  Provider.of<AuthService>(context, listen: false).phone ?? '',
+            ),
+          ),
+        );
+        break;
+      case 'settings':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const VoiceSettingsScreen()),
+        );
+        break;
+      case 'feedback':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FeedbackScreen()),
+        );
+        break;
+      case 'signout':
+        final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text(ls.getLocalizedString('sign_out_confirm_title'), style: AppTheme.headingSmall),
+                content:
+                    Text(ls.getLocalizedString('sign_out_confirm_message'), style: AppTheme.bodyMedium),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(ls.getLocalizedString('cancel_btn')),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(ls.getLocalizedString('sign_out'), style: TextStyle(color: AppTheme.errorRed)),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+
+        if (confirmed) {
+          if (!mounted) return;
+          await Provider.of<AuthService>(context, listen: false).logout();
+          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+        }
+        break;
+    }
   }
 }

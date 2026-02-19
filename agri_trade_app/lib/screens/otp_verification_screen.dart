@@ -6,9 +6,15 @@ import '../services/language_service.dart';
 import '../services/firebase_phone_auth_service.dart';
 import '../services/sms_provider_interface.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 import 'registration_profile_screen.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import '../widgets/glass_card_wrapper.dart';
+import '../widgets/primary_button.dart';
+import '../widgets/navigation_helper.dart';
+import 'farmer/farmer_home.dart';
+import 'retailer/retailer_home.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -137,7 +143,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen>
     final voiceService = Provider.of<VoiceService>(context, listen: false);
     
     // Listen for OTP with extended time
-    final result = await voiceService.listenOnce(seconds: 20);
+    final result = await voiceService.listenOnce(seconds: 40);
     
     if (!mounted || _isDisposed) return;
     _safeSetState(() {
@@ -240,22 +246,46 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen>
         // OTP success: try to fetch existing user profile
         final found = await authService.loadUserByPhone(widget.phoneNumber);
 
-        if (found) {
-          final text = _currentLanguage == 'te'
-              ? 'స్వాగతం! మీ డాష్‌బోర్డ్‌కు వెళుతున్నాము.'
-              : 'Welcome back! Taking you to your dashboard.';
-          await voiceService.speak(text);
+          if (found) {
+            final text = _currentLanguage == 'te'
+               ? 'స్వాగతం! మీ డాష్‌బోర్డ్‌కు వెళుతున్నాము.'
+               : 'Welcome back! Taking you to your dashboard.';
+            await voiceService.speak(text);
+          
           if (!mounted) return;
-          // Navigate to root (AuthWrapper will decide based on auth state)
-          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+          
+          // Navigate based on user type
+          final userType = authService.userType;
+          debugPrint('Navigating to home for user type: $userType');
+          
+          if (userType == 'farmer') {
+             Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const FarmerHome()), 
+              (route) => false,
+            );
+          } else if (userType == 'retailer') {
+             Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const RetailerHome()), 
+              (route) => false,
+            );
+          } else {
+            // Fallback if user type is missing or unknown
+            debugPrint('Unknown user type: $userType');
+             Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const NavigationHelper(child: SizedBox())), 
+              (route) => false,
+            );
+          }
+          
         } else {
-          // New user: go to profile registration
-          final text = _currentLanguage == 'te'
-              ? 'OTP ధృవీకరించబడింది. దయచేసి మీ వివరాలను పూర్తి చేయండి.'
-              : 'OTP verified. Please complete your profile.';
-          await voiceService.speak(text);
-          if (!mounted) return;
-          Navigator.pushReplacement(
+          // User not found -> Registration
+           final text = _currentLanguage == 'te'
+              ? 'ధృవీకరణ విజయవంతమైంది. దయచేసి మీ ప్రొఫైల్‌ను పూర్తి చేయండి.'
+              : 'Verification successful. Please complete your profile.';
+           await voiceService.speak(text);
+           
+           if (!mounted) return;
+           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (context) => RegistrationProfileScreen(
@@ -265,9 +295,11 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen>
           );
         }
       } else {
-        _showInvalidOTPDialog();
+         // Invalid OTP
+         _showInvalidOTPDialog();
       }
     } catch (e) {
+      debugPrint('Error verifying OTP: $e');
       _showErrorDialog();
     } finally {
       _safeSetState(() {
@@ -278,99 +310,81 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen>
 
   Future<void> _resendOTP() async {
     if (!_canResend) return;
-
+    
+    // reset timer
     _safeSetState(() {
-      _isVerifying = true;
-      _canResend = false;
       _resendCountdown = 60;
+      _canResend = false;
     });
-
+    _startCountdown();
+    
     try {
-      final smsService = Provider.of<SMSProvider>(context, listen: false);
-      final voiceService = Provider.of<VoiceService>(context, listen: false);
-      
-      final success = await smsService.sendOTP(widget.phoneNumber);
-      
-      if (success) {
-        final confirmText = _currentLanguage == 'te' 
-            ? 'కొత్త OTP పంపబడింది.'
-            : 'New OTP sent successfully.';
-        
-        await voiceService.speak(confirmText);
-        _startCountdown();
-      } else {
-        _showErrorDialog();
-      }
+       final smsService = Provider.of<SMSProvider>(context, listen: false);
+       await smsService.sendOTP(widget.phoneNumber);
+       ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_currentLanguage == 'te' ? 'OTP మళ్లీ పంపబడింది' : 'OTP Resent'))
+       );
     } catch (e) {
-      _showErrorDialog();
-    } finally {
-      _safeSetState(() {
-        _isVerifying = false;
-      });
+       ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'))
+       );
     }
-  }
-
-  void _showInvalidOTPDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(_currentLanguage == 'te' ? 'చెల్లని OTP' : 'Invalid OTP'),
-        content: Text(_currentLanguage == 'te' 
-            ? 'దయచేసి సరైన 6 అంకెల OTP ని ఎంటర్ చేయండి.'
-            : 'Please enter a valid 6-digit OTP.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _startVoicePrompt();
-            },
-            child: Text(_currentLanguage == 'te' ? 'మళ్లీ ప్రయత్నించండి' : 'Try Again'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showRetryDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(_currentLanguage == 'te' ? 'మళ్లీ ప్రయత్నించండి' : 'Try Again'),
-        content: Text(_currentLanguage == 'te' 
-            ? 'నేను వినలేకపోయాను. మళ్లీ ప్రయత్నించండి.'
-            : 'I couldn\'t hear you. Please try again.'),
+        title: Text(_currentLanguage == 'te' ? 'వాయిస్ గుర్తించబడలేదు' : 'Voice Not Recognized'),
+        content: Text(_currentLanguage == 'te'
+            ? 'దయచేసి OTP ని స్పష్టంగా చెప్పండి లేదా టైప్ చేయండి.'
+            : 'Please say the OTP clearly or type it manually.'),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _startVoicePrompt();
+              _startVoicePrompt(); // Retry listening
             },
-            child: Text(_currentLanguage == 'te' ? 'మళ్లీ ప్రయత్నించండి' : 'Try Again'),
+            child: Text(_currentLanguage == 'te' ? 'మళ్లీ ప్రయత్నించండి' : 'Retry'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text(_currentLanguage == 'te' ? 'మాన్యువల్ ఎంటర్' : 'Enter Manually'),
+            onPressed: () => Navigator.pop(context),
+            child: Text(_currentLanguage == 'te' ? 'రద్దు చేయండి' : 'Cancel'),
           ),
         ],
       ),
     );
   }
 
-  void _showErrorDialog() {
+  void _showInvalidOTPDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_currentLanguage == 'te' ? 'తప్పు OTP' : 'Invalid OTP'),
+        content: Text(_currentLanguage == 'te' 
+            ? 'మీరు ఎంటర్ చేసిన OTP తప్పు. దయచేసి సరైన OTP ని ఎంటర్ చేయండి.'
+            : 'The OTP you entered is incorrect. Please enter the correct OTP.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_currentLanguage == 'te' ? 'సరే' : 'OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog([String? message]) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(_currentLanguage == 'te' ? 'లోపం' : 'Error'),
-        content: Text(_currentLanguage == 'te' 
-            ? 'ఏదో లోపం జరిగింది. మళ్లీ ప్రయత్నించండి.'
-            : 'Something went wrong. Please try again.'),
+        content: Text(message ?? (_currentLanguage == 'te' 
+            ? 'కొంత లోపం జరిగింది. మళ్లీ ప్రయత్నించండి.'
+            : 'Something went wrong. Please try again.')),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
             child: Text(_currentLanguage == 'te' ? 'సరే' : 'OK'),
           ),
         ],
@@ -381,420 +395,188 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen>
   @override
   void dispose() {
     _isDisposed = true;
-    _countdownTimer?.cancel();
-    _countdownTimer = null;
-    try {
-      final voiceService = Provider.of<VoiceService>(context, listen: false);
-      voiceService.stopListening();
-    } catch (_) {}
+    _otpController.dispose();
     _fadeController.dispose();
     _pulseController.dispose();
-    _otpController.dispose();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
+    final languageService = Provider.of<LanguageService>(context);
+    final isTelugu = languageService.isTelugu;
+
+    return Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.green.shade800,
-              Colors.green.shade400,
-              Colors.green.shade200,
-            ],
-          ),
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: AppTheme.premiumGradient),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-                
-                // Title
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Text(
-                    _currentLanguage == 'te' ? 'OTP ధృవీకరణ' : 'Verify OTP',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 1.5,
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: GlassCardWrapper(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.lock_outline,
+                        size: 40,
+                        color: AppTheme.primaryGreen,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Subtitle
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Text(
-                    _currentLanguage == 'te' 
-                        ? 'మీ ఫోన్ ${widget.phoneNumber}కి పంపబడిన OTP ని ఎంటర్ చేయండి'
-                        : 'Enter the OTP sent to ${widget.phoneNumber}',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white.withValues(alpha: 0.9),
+                    const SizedBox(height: 24),
+                    Text(
+                      isTelugu ? 'OTP ధృవీకరణ' : 'OTP Verification',
+                      style: AppTheme.displayMedium.copyWith(
+                        color: AppTheme.primaryGreenDark,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                
-                const SizedBox(height: 60),
-                
-                // Voice Interface
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                      // Microphone Animation
-                      AnimatedBuilder(
-                        animation: _pulseAnimation,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _isListening ? _pulseAnimation.value : 1.0,
-                            child: Container(
-                              width: 200,
-                              height: 200,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _isListening 
-                                    ? Colors.red.withValues(alpha: 0.3)
-                                    : Colors.white.withValues(alpha: 0.2),
-                                border: Border.all(
-                                  color: _isListening 
-                                      ? Colors.red
-                                      : Colors.white,
-                                  width: 4,
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.mic,
-                                size: 80,
-                                color: _isListening ? Colors.red : Colors.white,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      
-                      const SizedBox(height: 40),
-                      
-                      // Status Text
-                      FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: Text(
-                          _isListening 
-                              ? (_currentLanguage == 'te' 
-                                  ? 'వినికిడి... OTP నెమ్మదిగా చెప్పండి (20 సెకన్లు)'
-                                  : 'Listening... Say the OTP slowly (20 seconds)')
-                              : _isVerifying
-                                  ? (_currentLanguage == 'te' 
-                                      ? 'OTP ధృవీకరిస్తోంది...'
-                                      : 'Verifying OTP...')
-                                  : (_currentLanguage == 'te' 
-                                      ? 'OTP నెమ్మదిగా చెప్పండి లేదా టైప్ చేయండి'
-                                      : 'Say the OTP slowly or type it'),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 40),
-                      
-                      // OTP Input Field
-                      FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: PinCodeTextField(
-                          appContext: context,
-                          length: 6,
-                          controller: _otpController,
-                          animationType: AnimationType.fade,
-                          pinTheme: PinTheme(
-                            shape: PinCodeFieldShape.box,
-                            borderRadius: BorderRadius.circular(15),
-                            fieldHeight: 60,
-                            fieldWidth: 50,
-                            activeFillColor: Colors.white.withValues(alpha: 0.9),
-                            inactiveFillColor: Colors.white.withValues(alpha: 0.1),
-                            selectedFillColor: Colors.white.withValues(alpha: 0.9),
-                            activeColor: Colors.green,
-                            inactiveColor: Colors.white.withValues(alpha: 0.5),
-                            selectedColor: Colors.green,
-                          ),
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          enableActiveFill: true,
-                          onCompleted: (value) {
-                            final sanitized = value.replaceAll(RegExp(r'\D'), '');
-                            if (sanitized != value) {
-                              _otpController.text = sanitized;
-                            }
-                            _verifyOTP();
-                          },
-                          onChanged: (value) {
-                            final sanitized = value.replaceAll(RegExp(r'\D'), '');
-                            if (sanitized != value) {
-                              _otpController.text = sanitized;
-                            }
-                            // Auto-verify when 6 digits are entered
-                            if (sanitized.length == 6) {
-                              _verifyOTP();
-                            }
-                          },
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 40),
-                      
-                        // Resend OTP Button
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _currentLanguage == 'te' 
-                                    ? 'OTP రీసెండ్ చేయండి'
-                                    : 'Resend OTP',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              TextButton(
-                                onPressed: _canResend ? _resendOTP : null,
-                                child: Text(
-                                  _canResend 
-                                      ? (_currentLanguage == 'te' ? 'పంపండి' : 'Send')
-                                      : '${_resendCountdown}s',
-                                  style: TextStyle(
-                                    color: _canResend ? Colors.white : Colors.white.withValues(alpha: 0.5),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        // Show OTP info for debugging (Firebase sends SMS automatically)
-                        Consumer<SMSProvider>(
-                          builder: (context, smsService, child) {
-                            final storedOTP = smsService.getCurrentOTP(widget.phoneNumber);
-                            final showOTP = smsService.isTestMode || storedOTP != null;
-                            
-                            if (showOTP && storedOTP != null) {
-                              return FadeTransition(
-                                opacity: _fadeAnimation,
-                                child: Container(
-                                  margin: const EdgeInsets.only(top: 20),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: Colors.blue,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Text(
-                                        '📱 Firebase Phone Auth',
-                                        style: TextStyle(
-                                          color: Colors.blue.shade300,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      // Check if billing is enabled (only for Firebase service)
-                                      Builder(
-                                        builder: (context) {
-                                          final smsService = Provider.of<SMSProvider>(context, listen: false);
-                                          bool billingEnabled = true;
-                                          
-                                          // Try to check billing status if it's Firebase service
-                                          if (smsService is FirebasePhoneAuthService) {
-                                            billingEnabled = smsService.isBillingEnabled(widget.phoneNumber);
-                                          }
-                                          
-                                          return Column(
-                                            children: [
-                                              if (!billingEnabled)
-                                                Container(
-                                                  padding: const EdgeInsets.all(12),
-                                                  margin: const EdgeInsets.only(bottom: 8),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.orange.withValues(alpha: 0.3),
-                                                    borderRadius: BorderRadius.circular(8),
-                                                    border: Border.all(
-                                                      color: Colors.orange,
-                                                      width: 1,
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    _currentLanguage == 'te'
-                                                        ? '⚠️ Firebase బిల్లింగ్ ప్రారంభించబడలేదు. దయచేసి క్రింద ఇచ్చిన టెస్ట్ OTPని ఉపయోగించండి.'
-                                                        : '⚠️ Firebase billing not enabled. Please use the test OTP below.',
-                                                    style: TextStyle(
-                                                      color: Colors.orange.shade200,
-                                                      fontSize: 13,
-                                                      fontWeight: FontWeight.w500,
-                                                    ),
-                                                    textAlign: TextAlign.center,
-                                                  ),
-                                                ),
-                                              Text(
-                                                billingEnabled
-                                                    ? (_currentLanguage == 'te'
-                                                        ? 'OTP SMS Firebase ద్వారా పంపబడుతుంది. మీ ఫోన్‌లో OTP తనిఖీ చేయండి.'
-                                                        : 'OTP SMS sent by Firebase. Check your phone for the OTP.')
-                                                    : (_currentLanguage == 'te'
-                                                        ? 'టెస్ట్ OTP (డెవలప్మెంట్ మోడ్)'
-                                                        : 'Test OTP (Development Mode)'),
-                                                style: TextStyle(
-                                                  color: Colors.white.withValues(alpha: 0.9),
-                                                  fontSize: 14,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.green.withValues(alpha: 0.3),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color: Colors.green,
-                                                    width: 2,
-                                                  ),
-                                                ),
-                                                child: Text(
-                                                  _currentLanguage == 'te'
-                                                      ? 'OTP: $storedOTP'
-                                                      : 'OTP: $storedOTP',
-                                                  style: TextStyle(
-                                                    color: Colors.green.shade100,
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                    letterSpacing: 2,
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ),
-                                              if (!billingEnabled)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(top: 8),
-                                                  child: Text(
-                                                    _currentLanguage == 'te'
-                                                        ? 'దయచేసి ఈ OTPని ఉపయోగించి వెరిఫై చేయండి.'
-                                                        : 'Please use this OTP to verify.',
-                                                    style: TextStyle(
-                                                      color: Colors.white.withValues(alpha: 0.7),
-                                                      fontSize: 12,
-                                                      fontStyle: FontStyle.italic,
-                                                    ),
-                                                    textAlign: TextAlign.center,
-                                                  ),
-                                                ),
-                                            ],
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
-                      ],
+                    const SizedBox(height: 8),
+                    Text(
+                      isTelugu
+                          ? '${widget.phoneNumber} కి పంపిన OTP ని ఎంటర్ చేయండి'
+                          : 'Enter the OTP sent to ${widget.phoneNumber}',
+                      textAlign: TextAlign.center,
+                      style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
                     ),
-                  ),
-                ),
-                
-                // Action Buttons
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _isVerifying ? null : _startVoicePrompt,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.2),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          ),
-                          child: Text(
-                            _currentLanguage == 'te' ? 'మళ్లీ చెప్పండి' : 'Speak Again',
-                            style: const TextStyle(fontSize: 16),
-                          ),
+                    const SizedBox(height: 32),
+                    
+                    PinCodeTextField(
+                      appContext: context,
+                      length: 6,
+                      controller: _otpController,
+                      obscureText: false,
+                      animationType: AnimationType.fade,
+                      pinTheme: PinTheme(
+                        shape: PinCodeFieldShape.box,
+                        borderRadius: BorderRadius.circular(12),
+                        fieldHeight: 50,
+                        fieldWidth: 45,
+                        activeFillColor: Colors.white,
+                        inactiveFillColor: Colors.white.withValues(alpha: 0.5),
+                        selectedFillColor: Colors.white,
+                        activeColor: AppTheme.primaryGreen,
+                        inactiveColor: AppTheme.textSecondary.withValues(alpha: 0.3),
+                        selectedColor: AppTheme.primaryGreenDark,
+                      ),
+                      animationDuration: const Duration(milliseconds: 300),
+                      backgroundColor: Colors.transparent,
+                      enableActiveFill: true,
+                      keyboardType: TextInputType.number,
+                      onCompleted: (v) {
+                        _verifyOTP();
+                      },
+                      onChanged: (value) {},
+                      beforeTextPaste: (text) {
+                        return true;
+                      },
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    if (_isVerifying)
+                      const CircularProgressIndicator(color: AppTheme.primaryGreen)
+                    else
+                      PrimaryButton(
+                        label: isTelugu ? 'ధృవీకరించండి' : 'Verify',
+                        onPressed: _verifyOTP,
+                      ),
+                      
+                    const SizedBox(height: 16),
+                    
+                    TextButton(
+                      onPressed: _canResend ? _resendOTP : null,
+                      child: Text(
+                        _canResend 
+                            ? (isTelugu ? 'OTP ని మళ్లీ పంపండి' : 'Resend OTP')
+                            : (isTelugu ? 'OTP మళ్లీ పంపండి ($_resendCountdown)' : 'Resend OTP in $_resendCountdown s'),
+                        style: TextStyle(
+                          color: _canResend ? AppTheme.primaryGreen : AppTheme.textSecondary,
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _isVerifying ? null : _verifyOTP,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.green.shade800,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          ),
-                          child: _isVerifying
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-                                  ),
-                                )
-                              : Text(
-                                  _currentLanguage == 'te' ? 'ధృవీకరించండి' : 'Verify',
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                ),
-                        ),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    Text(
+                      isTelugu ? 'లేదా, క్లిక్ చేసి OTP చెప్పండి' : 'Or, tap to speak OTP',
+                      style: AppTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 64,
+                      width: 64,
+                      child: FloatingActionButton(
+                        onPressed: _startVoicePrompt,
+                        backgroundColor: _isListening
+                            ? AppTheme.errorRed
+                            : AppTheme.primaryGreen,
+                        child: Icon(_isListening ? Icons.mic_off : Icons.mic,
+                            size: 30),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
           ),
         ),
       ),
+      bottomNavigationBar: _buildDemoOTPDisplay(context),
+    );
+  }
+
+  Widget? _buildDemoOTPDisplay(BuildContext context) {
+    // Only show in debug mode or if explicitly enabled
+    // Retrieving OTP from provider
+    final smsService = Provider.of<SMSProvider>(context, listen: false);
+    final otp = smsService.getCurrentOTP(widget.phoneNumber);
+    
+    if (otp == null) return null;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      color: Colors.amber.withValues(alpha: 0.2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.developer_mode, size: 16, color: Colors.orange),
+          const SizedBox(width: 8),
+          Text(
+            'Demo OTP: $otp',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.deepOrange,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.copy, size: 16, color: Colors.orange),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: otp));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('OTP copied to clipboard'), duration: Duration(seconds: 1)),
+              );
+            },
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
       ),
     );
   }

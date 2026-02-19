@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:auto_size_text/auto_size_text.dart';
-import '../theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'language_selection_screen.dart';
+import '../theme/app_theme.dart';
 
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
@@ -16,12 +16,14 @@ class _IntroScreenState extends State<IntroScreen>
   late AnimationController _logoController;
   late AnimationController _textController;
   late AnimationController _particleController;
+  late AnimationController _shimmerController;
   late Animation<double> _logoScale;
   late Animation<double> _logoRotation;
   late Animation<double> _logoOpacity;
   late Animation<double> _textFade;
   late Animation<Offset> _textSlide;
   late Animation<double> _particleAnimation;
+  late Animation<double> _shimmerAnimation;
 
   @override
   void initState() {
@@ -31,80 +33,63 @@ class _IntroScreenState extends State<IntroScreen>
   }
 
   void _initializeAnimations() {
-    // Logo animation - smooth scale and rotation
     _logoController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1400),
       vsync: this,
     );
-    
+
     _logoScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _logoController,
-        curve: Curves.easeOutBack,
-      ),
-    );
-    
-    _logoRotation = Tween<double>(begin: -0.2, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _logoController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
-    
-    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _logoController,
-        curve: Curves.easeIn,
-      ),
+      CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack),
     );
 
-    // Text animation - elegant fade and slide
+    _logoRotation = Tween<double>(begin: -0.15, end: 0.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.easeOutCubic),
+    );
+
+    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.easeIn),
+    );
+
     _textController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-    
+
     _textFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _textController,
-        curve: Curves.easeIn,
-      ),
-    );
-    
-    _textSlide = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _textController,
-        curve: Curves.easeOutCubic,
-      ),
+      CurvedAnimation(parent: _textController, curve: Curves.easeIn),
     );
 
-    // Particle animation - continuous subtle movement
+    _textSlide = Tween<Offset>(
+      begin: const Offset(0, 0.4),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _textController, curve: Curves.easeOutCubic),
+    );
+
     _particleController = AnimationController(
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(milliseconds: 4000),
       vsync: this,
     )..repeat();
-    
+
     _particleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _particleController,
-        curve: Curves.linear,
-      ),
+      CurvedAnimation(parent: _particleController, curve: Curves.linear),
+    );
+
+    _shimmerController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat();
+
+    _shimmerAnimation = Tween<double>(begin: -1.0, end: 2.0).animate(
+      CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut),
     );
   }
 
   Future<void> _startIntroSequence() async {
-    // Start logo animation
     _logoController.forward();
-    
-    // Start text animation after a short delay
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 500));
     _textController.forward();
-    
-    // Navigate after 2.5 seconds (smooth and quick)
-    await Future.delayed(const Duration(milliseconds: 2100));
+    await Future.delayed(const Duration(milliseconds: 2500));
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -112,12 +97,9 @@ class _IntroScreenState extends State<IntroScreen>
           pageBuilder: (context, animation, secondaryAnimation) =>
               const LanguageSelectionScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
+            return FadeTransition(opacity: animation, child: child);
           },
-          transitionDuration: const Duration(milliseconds: 400),
+          transitionDuration: const Duration(milliseconds: 500),
         ),
       );
     }
@@ -128,6 +110,7 @@ class _IntroScreenState extends State<IntroScreen>
     _logoController.dispose();
     _textController.dispose();
     _particleController.dispose();
+    _shimmerController.dispose();
     super.dispose();
   }
 
@@ -135,7 +118,13 @@ class _IntroScreenState extends State<IntroScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: AppTheme.backgroundGradientDecoration,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: AppTheme.premiumGradient,
+          ),
+        ),
         child: SafeArea(
           child: Stack(
             children: [
@@ -144,18 +133,44 @@ class _IntroScreenState extends State<IntroScreen>
                 animation: _particleAnimation,
                 builder: (context, child) {
                   return CustomPaint(
-                    painter: ParticlePainter(_particleAnimation.value),
+                    painter: _PremiumParticlePainter(_particleAnimation.value),
                     size: Size.infinite,
                   );
                 },
               ),
-              
+
+              // Decorative circles
+              Positioned(
+                top: -80,
+                right: -60,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.05),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -100,
+                left: -80,
+                child: Container(
+                  width: 250,
+                  height: 250,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.04),
+                  ),
+                ),
+              ),
+
               // Main content
               Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Logo with smooth animations
+                    // Logo
                     AnimatedBuilder(
                       animation: _logoController,
                       builder: (context, child) {
@@ -166,42 +181,43 @@ class _IntroScreenState extends State<IntroScreen>
                             child: Opacity(
                               opacity: _logoOpacity.value,
                               child: Container(
-                                width: 140,
-                                height: 140,
+                                width: 130,
+                                height: 130,
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                     colors: [
                                       AppTheme.secondaryAmber,
-                                      AppTheme.secondaryAmberLight,
+                                      AppTheme.secondaryAmberDark,
                                     ],
                                   ),
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
                                       color: AppTheme.secondaryAmber.withOpacity(0.4),
-                                      blurRadius: 30,
-                                      spreadRadius: 5,
-                                      offset: const Offset(0, 10),
-                                    ),
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 20,
-                                      spreadRadius: 2,
+                                      blurRadius: 40,
+                                      spreadRadius: 8,
+                                      offset: const Offset(0, 8),
                                     ),
                                   ],
                                 ),
                                 child: Container(
-                                  margin: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.surfaceWhite,
+                                  margin: const EdgeInsets.all(10),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Icon(
-                                    Icons.agriculture,
-                                    size: 70,
-                                    color: AppTheme.primaryGreen,
+                                  child: ClipOval(
+                                    child: Image.asset(
+                                      'assets/icon/app_icon.png',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(
+                                        Icons.eco,
+                                        size: 60,
+                                        color: AppTheme.primaryGreen,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -210,10 +226,10 @@ class _IntroScreenState extends State<IntroScreen>
                         );
                       },
                     ),
-                    
+
                     const SizedBox(height: 48),
-                    
-                    // App name with elegant animation
+
+                    // App name with shimmer effect
                     AnimatedBuilder(
                       animation: _textController,
                       builder: (context, child) {
@@ -223,47 +239,44 @@ class _IntroScreenState extends State<IntroScreen>
                             position: _textSlide,
                             child: Column(
                               children: [
-                                ShaderMask(
-                                  shaderCallback: (bounds) => LinearGradient(
-                                    colors: [
-                                      AppTheme.surfaceWhite,
-                                      AppTheme.surfaceWhite.withOpacity(0.9),
-                                    ],
-                                  ).createShader(bounds),
-                                  child: AutoSizeText(
-                                    'AgriTrade',
-                                    style: TextStyle(
-                                      fontSize: 48,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppTheme.surfaceWhite,
-                                      letterSpacing: 2.5,
-                                      shadows: [
-                                        Shadow(
-                                          color: Colors.black.withOpacity(0.3),
-                                          blurRadius: 15,
-                                          offset: const Offset(0, 4),
+                                // Shimmer text
+                                AnimatedBuilder(
+                                  animation: _shimmerController,
+                                  builder: (context, child) {
+                                    return ShaderMask(
+                                      shaderCallback: (bounds) => LinearGradient(
+                                        colors: [
+                                          Colors.white,
+                                          Colors.white.withOpacity(0.5),
+                                          Colors.white,
+                                        ],
+                                        stops: [
+                                          (_shimmerAnimation.value - 0.3).clamp(0.0, 1.0),
+                                          _shimmerAnimation.value.clamp(0.0, 1.0),
+                                          (_shimmerAnimation.value + 0.3).clamp(0.0, 1.0),
+                                        ],
+                                      ).createShader(bounds),
+                                      child: Text(
+                                        'AgriTrade',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 46,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                          letterSpacing: 2.5,
                                         ),
-                                      ],
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                  ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
                                   'Voice-Powered Agricultural Trading',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: AppTheme.surfaceWhite.withOpacity(0.9),
-                                    letterSpacing: 1.2,
-                                    fontWeight: FontWeight.w500,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                                  style: GoogleFonts.inter(
+                                    fontSize: 15,
+                                    color: Colors.white.withOpacity(0.85),
+                                    letterSpacing: 1.5,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -273,22 +286,22 @@ class _IntroScreenState extends State<IntroScreen>
                         );
                       },
                     ),
-                    
-                    const SizedBox(height: 60),
-                    
-                    // Subtle loading indicator
+
+                    const SizedBox(height: 64),
+
+                    // Loading indicator
                     AnimatedBuilder(
                       animation: _textController,
                       builder: (context, child) {
                         return FadeTransition(
                           opacity: _textFade,
                           child: SizedBox(
-                            width: 40,
-                            height: 40,
+                            width: 32,
+                            height: 32,
                             child: CircularProgressIndicator(
-                              strokeWidth: 3,
+                              strokeWidth: 2.5,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                AppTheme.surfaceWhite.withOpacity(0.8),
+                                Colors.white.withOpacity(0.7),
                               ),
                             ),
                           ),
@@ -306,31 +319,30 @@ class _IntroScreenState extends State<IntroScreen>
   }
 }
 
-// Subtle particle painter for background animation
-class ParticlePainter extends CustomPainter {
+// Premium particle effect
+class _PremiumParticlePainter extends CustomPainter {
   final double animationValue;
-
-  ParticlePainter(this.animationValue);
+  _PremiumParticlePainter(this.animationValue);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppTheme.surfaceWhite.withOpacity(0.1)
-      ..style = PaintingStyle.fill;
+    final paint = Paint()..style = PaintingStyle.fill;
 
-    // Draw subtle floating particles
-    for (int i = 0; i < 8; i++) {
-      final angle = (animationValue * 2 * 3.14159) + (i * 3.14159 / 4);
-      final radius = 20 + (i % 3) * 15;
-      final x = size.width * 0.2 + (i % 2) * size.width * 0.6;
-      final y = size.height * 0.3 + (i % 3) * size.height * 0.4;
+    for (int i = 0; i < 12; i++) {
+      final angle = (animationValue * 2 * math.pi) + (i * math.pi / 6);
+      final radius = 15 + (i % 4) * 12.0;
+      final x = size.width * (0.1 + (i % 5) * 0.2);
+      final y = size.height * (0.15 + (i % 4) * 0.22);
+
+      final offsetX = x + radius * math.cos(angle * 0.3 + i);
+      final offsetY = y + radius * math.sin(angle * 0.3 + i);
       
-      final offsetX = x + radius * math.cos(angle * 0.5);
-      final offsetY = y + radius * math.sin(angle * 0.5);
-      
+      final opacity = 0.04 + (math.sin(angle + i) * 0.03);
+      paint.color = Colors.white.withOpacity(opacity.clamp(0.01, 0.1));
+
       canvas.drawCircle(
         Offset(offsetX, offsetY),
-        3 + (i % 2) * 2,
+        2 + (i % 3) * 1.5,
         paint,
       );
     }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/navigation_helper.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_gradient_scaffold.dart';
+import '../widgets/primary_button.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -30,12 +33,15 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Feedback sent. Thank you!')),
+        const SnackBar(
+          content: Text('Feedback sent. Thank you!'),
+          backgroundColor: AppTheme.primaryGreen,
+        ),
       );
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.errorRed),
       );
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -45,39 +51,67 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   @override
   Widget build(BuildContext context) {
     return NavigationHelper(
-      child: Scaffold(
-        appBar: NavigationAppBar(
-          title: 'Feedback',
-          backgroundColor: Colors.green,
-          foregroundColor: Colors.white,
-        ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _messageController,
-                maxLines: 6,
-                decoration: const InputDecoration(
-                  labelText: 'Your feedback',
-                  border: OutlineInputBorder(),
+      child: AppGradientScaffold(
+        headerHeightFraction: 0.2,
+        headerChildren: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
                 ),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Please enter feedback' : null,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _sending ? null : _submit,
-                child: _sending
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Submit'),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  'Feedback',
+                  style: AppTheme.headingMedium.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
+        bodyChildren: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: AppTheme.cardDecoration,
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'We value your feedback!',
+                    style: AppTheme.headingSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please let us know your thoughts, suggestions, or any issues you faced.',
+                    style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
+                  ),
+                  const SizedBox(height: 24),
+                  TextFormField(
+                    controller: _messageController,
+                    maxLines: 6,
+                    decoration: AppTheme.inputDecoration.copyWith(
+                      labelText: 'Your feedback',
+                      alignLabelWithHint: true,
+                      hintText: 'Type your message here...',
+                    ),
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Please enter feedback' : null,
+                  ),
+                  const SizedBox(height: 32),
+                  PrimaryButton(
+                    label: 'Submit Feedback',
+                    onPressed: _submit,
+                    isLoading: _sending,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-    ),
     );
   }
 }

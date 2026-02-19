@@ -8,7 +8,8 @@ import 'services/offline_service.dart';
 import 'services/language_service.dart';
 import 'services/notification_service.dart';
 import 'screens/intro_screen.dart';
-import 'services/firebase_phone_auth_service.dart';
+import 'theme/app_theme.dart';
+
 import 'services/sms_provider_interface.dart';
 import 'services/twilio_service.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -65,12 +66,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'AgriTrade',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        primaryColor: Colors.green,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       initialRoute: '/',
       routes: {
         '/': (context) => const IntroScreen(),

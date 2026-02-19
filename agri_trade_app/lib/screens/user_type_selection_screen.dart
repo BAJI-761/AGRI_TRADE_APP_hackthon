@@ -1,209 +1,170 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/voice_service.dart';
 import '../services/language_service.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 import 'farmer/farmer_home.dart';
 import 'retailer/retailer_home.dart';
 
 class UserTypeSelectionScreen extends StatefulWidget {
-  final String phoneNumber;
-  
+  final String? phoneNumber; // Optional if already in auth
   const UserTypeSelectionScreen({
     super.key,
-    required this.phoneNumber,
+    this.phoneNumber,
   });
 
   @override
-  State<UserTypeSelectionScreen> createState() => _UserTypeSelectionScreenState();
+  State<UserTypeSelectionScreen> createState() =>
+      _UserTypeSelectionScreenState();
 }
 
 class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late AnimationController _pulseController;
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _pulseAnimation;
   
   String? _selectedUserType;
   bool _isListening = false;
-  String _currentLanguage = 'en';
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
-    _getCurrentLanguage();
-    _startVoicePrompt();
+    // Start voice prompt after animation delay
+    Future.delayed(const Duration(milliseconds: 1000), _startVoicePrompt);
   }
 
   void _initializeAnimations() {
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    );
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
-
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.2,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
-
-    _fadeController.forward();
+    _animController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800));
+    _fadeAnimation = CurvedAnimation(
+        parent: _animController, curve: Curves.easeIn);
+    _animController.forward();
   }
 
-  Future<void> _getCurrentLanguage() async {
-    final languageService = Provider.of<LanguageService>(context, listen: false);
-    setState(() {
-      _currentLanguage = languageService.currentLanguage;
-    });
+  String _getCurrentLanguage() {
+    return Provider.of<LanguageService>(context, listen: false).currentLanguage;
   }
 
   Future<void> _startVoicePrompt() async {
     final voiceService = Provider.of<VoiceService>(context, listen: false);
-    
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    final prompt = _currentLanguage == 'te' 
-        ? 'మీరు రైతు లేదా రిటైలర్? దయచేసి చెప్పండి.'
-        : 'Are you a farmer or retailer? Please say.';
-    
-    await voiceService.speak(prompt);
-    
-    setState(() {
-      _isListening = true;
-    });
-    
-    _pulseController.repeat(reverse: true);
-    
-    // Start listening for user type
-    _startListening();
+    final lang = _getCurrentLanguage();
+
+    await voiceService.speak(lang == 'te'
+        ? 'మీరు రైతు లేదా రిటైలర్? దయచేసి చెప్పండి లేదా ఎంచుకోండి.'
+        : 'Are you a farmer or retailer? Please say or tap.');
   }
 
-  Future<void> _startListening() async {
+  Future<void> _handleVoiceInput() async {
+    setState(() => _isListening = true);
     final voiceService = Provider.of<VoiceService>(context, listen: false);
-    
-    // Listen for user type
-    final result = await voiceService.listenOnce(seconds: 15);
-    
-    setState(() {
-      _isListening = false;
-    });
-    
-    _pulseController.stop();
-    
-    if (result.isNotEmpty) {
-      _processUserTypeSelection(result);
-    } else {
-      _showRetryDialog();
+    final lang = _getCurrentLanguage();
+
+    try {
+      await voiceService.speak(lang == 'te' ? 'చెప్పండి...' : 'Say Farmer or Retailer...');
+      
+      // Short pause
+      await Future.delayed(const Duration(seconds: 1));
+
+      final result = await voiceService.listenOnce(seconds: 5);
+
+      if (mounted) {
+        setState(() => _isListening = false);
+        if (result.isNotEmpty) {
+          _processUserTypeSelection(result);
+        } else {
+             await voiceService.speak(lang == 'te' 
+                 ? 'వినపడలేదు. మళ్ళీ ప్రయత్నించండి.' 
+                 : 'Could not hear. Please try again.');
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isListening = false);
     }
   }
 
   void _processUserTypeSelection(String spokenText) {
     String? selectedType;
     final text = spokenText.toLowerCase();
-    
-    if (text.contains('farmer') || text.contains('రైతు') || text.contains('farmer')) {
+
+    if (text.contains('farmer') || text.contains('రైతు')) {
       selectedType = 'farmer';
-    } else if (text.contains('retailer') || text.contains('రిటైలర్') || text.contains('shop')) {
+    } else if (text.contains('retailer') ||
+        text.contains('రిటైలర్') ||
+        text.contains('shop') ||
+        text.contains('store') ||
+        text.contains('వ్యాపారి')) { // simplistic match
       selectedType = 'retailer';
     }
-    
+
     if (selectedType != null) {
       _selectUserType(selectedType);
     } else {
-      _showRetryDialog();
+        final lang = _getCurrentLanguage();
+        final voiceService = Provider.of<VoiceService>(context, listen: false);
+        voiceService.speak(lang == 'te' ? 'అర్థం కాలేదు.' : 'Did not understand.');
     }
   }
 
-  void _selectUserType(String userType) async {
+  Future<void> _selectUserType(String userType) async {
+    setState(() => _selectedUserType = userType);
     final voiceService = Provider.of<VoiceService>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
-    
-    setState(() {
-      _selectedUserType = userType;
-    });
-    
-    // Confirm selection with voice
-    final confirmText = _currentLanguage == 'te' 
-        ? (userType == 'farmer' 
-            ? 'రైతు ఎంచుకోబడింది. మీ డాష్‌బోర్డ్‌కు వెళుతున్నాము.'
-            : 'రిటైలర్ ఎంచుకోబడింది. మీ డాష్‌బోర్డ్‌కు వెళుతున్నాము.')
-        : (userType == 'farmer' 
-            ? 'Farmer selected. Going to your dashboard.'
-            : 'Retailer selected. Going to your dashboard.');
-    
+    final lang = _getCurrentLanguage();
+
+    final confirmText = lang == 'te'
+        ? (userType == 'farmer'
+            ? 'రైతు ఎంచుకోబడింది. సేవ్ చేస్తున్నాము.'
+            : 'రిటైలర్ ఎంచుకోబడింది. సేవ్ చేస్తున్నాము.')
+        : (userType == 'farmer' ? 'Farmer selected.' : 'Retailer selected.');
+
     await voiceService.speak(confirmText);
     
-    // Create user account with phone number
-    await authService.createUserWithPhone(
-      widget.phoneNumber,
-      userType,
-    );
-    
-    // Navigate to appropriate home screen
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => userType == 'farmer' 
-              ? const FarmerHome()
-              : const RetailerHome(),
-        ),
-      );
-    }
-  }
+    setState(() => _isLoading = true);
 
-  void _showRetryDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(_currentLanguage == 'te' ? 'మళ్లీ ప్రయత్నించండి' : 'Try Again'),
-        content: Text(_currentLanguage == 'te' 
-            ? 'నేను వినలేకపోయాను. మళ్లీ ప్రయత్నించండి.'
-            : 'I couldn\'t hear you. Please try again.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _startVoicePrompt();
-            },
-            child: Text(_currentLanguage == 'te' ? 'మళ్లీ ప్రయత్నించండి' : 'Try Again'),
+    try {
+        if (widget.phoneNumber != null) {
+             await authService.createUserWithPhone(widget.phoneNumber!, userType);
+        } else {
+             // If phone number is null, assume update current user
+             await authService.updateUserType(userType); 
+        }
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => userType == 'farmer'
+                ? const FarmerHome()
+                : const RetailerHome(),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text(_currentLanguage == 'te' ? 'మాన్యువల్ ఎంచుకోండి' : 'Select Manually'),
-          ),
-        ],
-      ),
-    );
+        );
+      }
+    } catch (e) {
+        if(mounted) {
+             ScaffoldMessenger.of(context).showSnackBar(
+                 SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.errorRed)
+             );
+        }
+    } finally {
+        if(mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   void dispose() {
-    _fadeController.dispose();
-    _pulseController.dispose();
+    _animController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final languageService = Provider.of<LanguageService>(context);
+    final isTe = languageService.isTelugu;
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -212,11 +173,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Colors.green.shade800,
-              Colors.green.shade400,
-              Colors.green.shade200,
-            ],
+            colors: AppTheme.premiumGradient,
           ),
         ),
         child: SafeArea(
@@ -224,158 +181,109 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                const SizedBox(height: 40),
-                
+                const SizedBox(height: 32),
+
                 // Title
                 FadeTransition(
                   opacity: _fadeAnimation,
-                  child: Text(
-                    _currentLanguage == 'te' ? 'వినియోగదారు రకం' : 'User Type',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 1.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Subtitle
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Text(
-                    _currentLanguage == 'te' 
-                        ? 'మీరు రైతు లేదా రిటైలర్?'
-                        : 'Are you a farmer or retailer?',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                
-                const SizedBox(height: 60),
-                
-                // Voice Interface
-                Expanded(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Microphone Animation
-                      AnimatedBuilder(
-                        animation: _pulseAnimation,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _isListening ? _pulseAnimation.value : 1.0,
-                            child: Container(
-                              width: 200,
-                              height: 200,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _isListening 
-                                    ? Colors.red.withValues(alpha: 0.3)
-                                    : Colors.white.withValues(alpha: 0.2),
-                                border: Border.all(
-                                  color: _isListening 
-                                      ? Colors.red
-                                      : Colors.white,
-                                  width: 4,
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.mic,
-                                size: 80,
-                                color: _isListening ? Colors.red : Colors.white,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      
-                      const SizedBox(height: 40),
-                      
-                      // Status Text
-                      FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: Text(
-                          _isListening 
-                              ? (_currentLanguage == 'te' 
-                                  ? 'వినికిడి... రైతు లేదా రిటైలర్ చెప్పండి'
-                                  : 'Listening... Say farmer or retailer')
-                              : (_currentLanguage == 'te' 
-                                  ? 'రైతు లేదా రిటైలర్ చెప్పండి'
-                                  : 'Say farmer or retailer'),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
+                        Text(
+                          isTe ? 'వినియోగదారు రకం' : 'Select Role',
+                          style: AppTheme.displayMedium.copyWith(color: Colors.white),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          isTe
+                              ? 'మీరు రైతు లేదా రిటైలర్?'
+                              : 'Are you a Farmer or a Retailer?',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: Colors.white.withOpacity(0.9),
                           ),
                           textAlign: TextAlign.center,
                         ),
-                      ),
-                      
-                      const SizedBox(height: 60),
-                      
-                      // User Type Options
-                      FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: _buildUserTypeOption(
-                                Icons.agriculture,
-                                _currentLanguage == 'te' ? 'రైతు' : 'Farmer',
-                                'farmer',
-                                Colors.orange,
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-                            Expanded(
-                              child: _buildUserTypeOption(
-                                Icons.store,
-                                _currentLanguage == 'te' ? 'రిటైలర్' : 'Retailer',
-                                'retailer',
-                                Colors.blue,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
+
+                const SizedBox(height: 48),
+
+                // Cards Row
+                Expanded(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Farmer Card
+                        Expanded(
+                          child: _UserTypeCard(
+                            title: isTe ? 'రైతు' : 'Farmer',
+                            subtitle: isTe ? 'పంటలు' : 'Grow Crops',
+                            icon: Icons.agriculture_rounded,
+                            isSelected: _selectedUserType == 'farmer',
+                            onTap: () => _selectUserType('farmer'),
+                            activeColor: AppTheme.primaryGreen,
+                            textColor: AppTheme.primaryGreenDark,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Retailer Card
+                        Expanded(
+                          child: _UserTypeCard(
+                            title: isTe ? 'రిటైలర్' : 'Retailer',
+                            subtitle: isTe ? 'వ్యాపారం' : 'Trade Goods',
+                            icon: Icons.store_rounded,
+                            isSelected: _selectedUserType == 'retailer',
+                            onTap: () => _selectUserType('retailer'),
+                            activeColor: AppTheme.secondaryAmber,
+                            textColor: Colors.deepOrange,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 
-                // Action Buttons
+                 const SizedBox(height: 48),
+
+                // Voice Trigger
                 FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _startVoicePrompt,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.2),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
+                     opacity: _fadeAnimation,
+                     child: GestureDetector(
+                        onTap: _handleVoiceInput,
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                             color: _isListening ? AppTheme.errorRed : Colors.white.withOpacity(0.2),
+                             shape: BoxShape.circle,
+                             border: Border.all(color: Colors.white, width: 2),
+                             boxShadow: [
+                                 BoxShadow(
+                                     color: Colors.black26, 
+                                     blurRadius: 10, 
+                                     offset: const Offset(0,4),
+                                 )
+                             ]
                           ),
-                          child: Text(
-                            _currentLanguage == 'te' ? 'మళ్లీ చెప్పండి' : 'Speak Again',
-                            style: const TextStyle(fontSize: 16),
+                          child: Icon(
+                             _isListening ? Icons.mic : Icons.mic_none,
+                             color: Colors.white,
+                             size: 32,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                     ),
                 ),
+                const SizedBox(height: 16),
+                Text(
+                     isTe ? 'నొక్కి చెప్పండి' : 'Tap to Speak',
+                     style: AppTheme.bodySmall.copyWith(color: Colors.white70),
+                ),
+                const SizedBox(height: 32),
                 
-                const SizedBox(height: 20),
+                if(_isLoading)
+                    const CircularProgressIndicator(color: Colors.white),
               ],
             ),
           ),
@@ -383,60 +291,88 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
       ),
     );
   }
+}
 
-  Widget _buildUserTypeOption(IconData icon, String title, String type, Color color) {
-    final isSelected = _selectedUserType == type;
-    
+class _UserTypeCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final Color activeColor;
+  final Color textColor;
+
+  const _UserTypeCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+    required this.activeColor,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _selectUserType(type),
+      onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(24),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
         decoration: BoxDecoration(
-          color: isSelected 
-              ? Colors.white.withValues(alpha: 0.3)
-              : Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? Colors.white : Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.5),
-            width: 2,
+            color: isSelected ? activeColor : Colors.white.withOpacity(0.3),
+            width: isSelected ? 4 : 1,
           ),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              spreadRadius: 2,
-            ),
-          ] : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withOpacity(0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  )
+                ]
+              : [],
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 60,
-              color: Colors.white,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isSelected ? activeColor.withOpacity(0.1) : Colors.white.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 48,
+                color: isSelected ? activeColor : Colors.white,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
               title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
+              style: AppTheme.headingMedium.copyWith(
+                color: isSelected ? textColor : Colors.white,
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              _currentLanguage == 'te' 
-                  ? (type == 'farmer' ? 'పంటలు పండించండి' : 'వ్యాపారం చేయండి')
-                  : (type == 'farmer' ? 'Grow crops' : 'Sell products'),
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
+              subtitle,
+              style: AppTheme.bodyMedium.copyWith(
+                color: isSelected ? textColor.withOpacity(0.7) : Colors.white70,
                 fontSize: 14,
               ),
               textAlign: TextAlign.center,
             ),
+            if (isSelected) ...[
+                const SizedBox(height: 16),
+                Icon(Icons.check_circle, color: activeColor, size: 24),
+            ]
           ],
         ),
       ),

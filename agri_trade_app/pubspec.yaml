@@ -22,10 +22,11 @@ dependencies:
   permission_handler: ^12.0.1
   shared_preferences: ^2.2.2
   connectivity_plus: ^5.0.2
-  twilio_flutter: ^0.4.0
   pin_code_fields: ^8.0.1
   lottie: ^3.1.2
   auto_size_text: ^3.0.0
+  google_fonts: ^6.1.0
+  intl_phone_field: ^3.2.0
 
 dev_dependencies:
   flutter_test:
@@ -35,6 +36,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/
 
 flutter_launcher_icons:
   android: true

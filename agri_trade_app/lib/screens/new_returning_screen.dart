@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/voice_service.dart';
 import '../services/language_service.dart';
+import '../theme/app_theme.dart';
 import 'phone_voice_input_screen.dart';
 import 'login_screen.dart';
 import 'registration_profile_screen.dart';
@@ -30,19 +32,14 @@ class _NewReturningScreenState extends State<NewReturningScreen>
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
     _fadeController.forward();
-    // Defer language load and voice prompt until after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _loadLangAndPrompt();
-      }
+      if (mounted) _loadLangAndPrompt();
     });
   }
 
   Future<void> _loadLangAndPrompt() async {
     final languageService = Provider.of<LanguageService>(context, listen: false);
-    setState(() {
-      _currentLanguage = languageService.currentLanguage;
-    });
+    setState(() => _currentLanguage = languageService.currentLanguage);
     final voice = Provider.of<VoiceService>(context, listen: false);
     final text = _currentLanguage == 'te'
         ? 'మీరు కొత్త వినియోగదారునా లేదా తిరిగి వస్తున్న వినియోగదారునా? కొత్త లేదా రిటర్నింగ్ అని చెప్పండి.'
@@ -51,24 +48,15 @@ class _NewReturningScreenState extends State<NewReturningScreen>
   }
 
   void _goToPhoneFlow() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const PhoneVoiceInputScreen()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const PhoneVoiceInputScreen()));
   }
 
   void _goToLogin() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
   }
 
   void _goToRegistration() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const RegistrationProfileScreen(phoneNumber: '')),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const RegistrationProfileScreen(phoneNumber: '')));
   }
 
   @override
@@ -87,11 +75,7 @@ class _NewReturningScreenState extends State<NewReturningScreen>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Colors.green.shade800,
-              Colors.green.shade400,
-              Colors.green.shade200,
-            ],
+            colors: AppTheme.premiumGradient,
           ),
         ),
         child: SafeArea(
@@ -104,27 +88,27 @@ class _NewReturningScreenState extends State<NewReturningScreen>
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child: Text(
-                    _currentLanguage == 'te' ? 'మీరు ఎవరు?' : 'Who are you?',
+                    _currentLanguage == 'te' ? 'మీరు ఎవరు?' : 'Welcome!',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w800,
                       color: Colors.white,
-                      letterSpacing: 1.5,
+                      letterSpacing: 1,
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child: Text(
                     _currentLanguage == 'te'
                         ? 'కొత్త లేదా తిరిగి వస్తున్న వినియోగదారుని ఎంపిక చేయండి'
-                        : 'Choose whether you are new or returning',
+                        : 'Are you new here or returning?',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white.withValues(alpha: 0.9),
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.85),
                     ),
                   ),
                 ),
@@ -133,15 +117,19 @@ class _NewReturningScreenState extends State<NewReturningScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _ChoiceButton(
+                      _buildChoiceCard(
                         label: _currentLanguage == 'te' ? 'కొత్త వినియోగదారు' : 'I am New',
-                        icon: Icons.person_add_alt_1,
+                        subtitle: _currentLanguage == 'te' ? 'ఖాతా సృష్టించండి' : 'Create an account',
+                        icon: Icons.person_add_alt_1_rounded,
+                        color: AppTheme.secondaryAmber,
                         onPressed: _goToRegistration,
                       ),
-                      const SizedBox(height: 20),
-                      _ChoiceButton(
+                      const SizedBox(height: 18),
+                      _buildChoiceCard(
                         label: _currentLanguage == 'te' ? 'తిరిగి వస్తున్నాను' : 'I am Returning',
-                        icon: Icons.login,
+                        subtitle: _currentLanguage == 'te' ? 'లాగ్ ఇన్ అవ్వండి' : 'Sign in to your account',
+                        icon: Icons.login_rounded,
+                        color: AppTheme.accentBlue,
                         onPressed: _goToLogin,
                       ),
                     ],
@@ -154,44 +142,70 @@ class _NewReturningScreenState extends State<NewReturningScreen>
       ),
     );
   }
-}
 
-class _ChoiceButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const _ChoiceButton({
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildChoiceCard({
+    required String label,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.green.shade800,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        icon: Icon(icon, size: 24),
-        label: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, size: 28, color: Colors.white),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded,
+                  size: 18, color: Colors.white.withOpacity(0.5)),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-
-
