@@ -135,7 +135,7 @@ class LanguageService extends ChangeNotifier {
       'contact_retailer': 'Contact Retailer',
       'contact_information': 'Contact Information:',
       'phone': 'Phone',
-      'email': 'Email',
+
       'address_label': 'Address',
       'close': 'Close',
       'send_request': 'Send Request',
@@ -375,7 +375,7 @@ class LanguageService extends ChangeNotifier {
       'contact_retailer': 'రిటైలర్‌ను సంప్రదించండి',
       'contact_information': 'సంప్రదింపు సమాచారం:',
       'phone': 'ఫోన్',
-      'email': 'ఈమెయిల్',
+
       'address_label': 'చిరునామా',
       'close': 'మూసివేయి',
       'send_request': 'అభ్యర్థన పంపండి',

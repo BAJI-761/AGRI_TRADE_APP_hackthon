@@ -1,4 +1,4 @@
-import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -178,13 +178,13 @@ class AppTheme {
     borderRadius: BorderRadius.circular(20),
     boxShadow: [
       BoxShadow(
-        color: primaryGreen.withOpacity(0.06),
+        color: primaryGreen.withValues(alpha:0.06),
         blurRadius: 16,
         offset: const Offset(0, 4),
         spreadRadius: 0,
       ),
       BoxShadow(
-        color: Colors.black.withOpacity(0.03),
+        color: Colors.black.withValues(alpha:0.03),
         blurRadius: 6,
         offset: const Offset(0, 2),
       ),
@@ -193,15 +193,15 @@ class AppTheme {
 
   /// Glassmorphism card — frosted translucent effect
   static BoxDecoration get glassCard => BoxDecoration(
-    color: surfaceWhite.withOpacity(0.7),
+    color: surfaceWhite.withValues(alpha:0.7),
     borderRadius: BorderRadius.circular(24),
     border: Border.all(
-      color: surfaceWhite.withOpacity(0.3),
+      color: surfaceWhite.withValues(alpha:0.3),
       width: 1.5,
     ),
     boxShadow: [
       BoxShadow(
-        color: primaryGreen.withOpacity(0.08),
+        color: primaryGreen.withValues(alpha:0.08),
         blurRadius: 24,
         offset: const Offset(0, 8),
       ),
@@ -210,10 +210,10 @@ class AppTheme {
 
   /// Glassmorphism card on dark/gradient backgrounds
   static BoxDecoration get glassCardOnDark => BoxDecoration(
-    color: Colors.white.withOpacity(0.15),
+    color: Colors.white.withValues(alpha:0.15),
     borderRadius: BorderRadius.circular(20),
     border: Border.all(
-      color: Colors.white.withOpacity(0.2),
+      color: Colors.white.withValues(alpha:0.2),
       width: 1,
     ),
   );
@@ -222,10 +222,10 @@ class AppTheme {
   static BoxDecoration accentCard(Color color) => BoxDecoration(
     color: surfaceWhite,
     borderRadius: BorderRadius.circular(20),
-    border: Border.all(color: color.withOpacity(0.15), width: 1.5),
+    border: Border.all(color: color.withValues(alpha:0.15), width: 1.5),
     boxShadow: [
       BoxShadow(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha:0.08),
         blurRadius: 20,
         offset: const Offset(0, 6),
       ),
@@ -265,11 +265,11 @@ class AppTheme {
     fillColor: surfaceLight,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: primaryGreen.withOpacity(0.15)),
+      borderSide: BorderSide(color: primaryGreen.withValues(alpha:0.15)),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: primaryGreen.withOpacity(0.12)),
+      borderSide: BorderSide(color: primaryGreen.withValues(alpha:0.12)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
@@ -320,7 +320,7 @@ class AppTheme {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(size * 0.3),
       ),
       child: Icon(icon, color: color, size: iconSize),
@@ -352,8 +352,8 @@ class AppTheme {
         onSurfaceVariant: textSecondary,
         outline: const Color(0xFFCBD5E1),
         outlineVariant: const Color(0xFFE2E8F0),
-        shadow: Colors.black.withOpacity(0.08),
-        scrim: Colors.black.withOpacity(0.4),
+        shadow: Colors.black.withValues(alpha:0.08),
+        scrim: Colors.black.withValues(alpha:0.4),
         inverseSurface: backgroundDark,
         onInverseSurface: textOnPrimary,
         inversePrimary: primaryGreenLight,
@@ -442,11 +442,11 @@ class AppTheme {
         fillColor: surfaceLight,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: primaryGreen.withOpacity(0.15)),
+          borderSide: BorderSide(color: primaryGreen.withValues(alpha:0.15)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: primaryGreen.withOpacity(0.12)),
+          borderSide: BorderSide(color: primaryGreen.withValues(alpha:0.12)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -474,7 +474,7 @@ class AppTheme {
       // Chip Theme
       chipTheme: ChipThemeData(
         backgroundColor: primaryGreenSurface,
-        selectedColor: primaryGreen.withOpacity(0.2),
+        selectedColor: primaryGreen.withValues(alpha:0.2),
         labelStyle: GoogleFonts.inter(color: textPrimary, fontSize: 13),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         shape: RoundedRectangleBorder(

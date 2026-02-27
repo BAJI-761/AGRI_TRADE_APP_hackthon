@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../services/order_service.dart';
-import '../../services/payment_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/language_service.dart';
 import '../../models/order.dart' as model;
 import '../../models/trade_enums.dart'; // Phase 1
-import '../../config/feature_flags.dart'; // Phase 2
 import '../../widgets/navigation_helper.dart';
 import '../../widgets/app_gradient_scaffold.dart';
+import '../../widgets/delivery_timeline.dart';
 
 class FarmerOrdersScreen extends StatefulWidget {
   const FarmerOrdersScreen({super.key});
@@ -20,7 +19,7 @@ class FarmerOrdersScreen extends StatefulWidget {
 
 class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
   final OrderService _service = OrderService();
-  final PaymentService _paymentService = PaymentService(); // Phase 2
+  
   String _formatDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
@@ -116,7 +115,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
                       padding: const EdgeInsets.all(16),
                       decoration: AppTheme.cardDecoration.copyWith(
                         color: Colors.white,
-                        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -170,9 +169,14 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
     
     // Determine color based on status/tradeState
     Color statusColor;
-    if (o.tradeState == TradeState.paymentHeld) {
+    final state = o.tradeState;
+    if (state == 'completed') {
+      statusColor = AppTheme.primaryGreen;
+    } else if (state == 'disputed') {
+      statusColor = AppTheme.errorRed;
+    } else if (state == 'paymentHeld') {
       statusColor = Colors.purple;
-    } else if (o.status == 'accepted') {
+    } else if (state == 'accepted' || o.status == 'accepted') {
       statusColor = AppTheme.primaryGreen;
     } else if (o.status == 'rejected') {
       statusColor = AppTheme.errorRed;
@@ -254,9 +258,14 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
     // Determine color based on status/tradeState
     final displayStatus = o.displayStatus;
     Color statusColor;
-    if (o.tradeState == TradeState.paymentHeld) {
+    final state = o.tradeState;
+    if (state == 'completed') {
+      statusColor = AppTheme.primaryGreen;
+    } else if (state == 'disputed') {
+      statusColor = AppTheme.errorRed;
+    } else if (state == 'paymentHeld') {
       statusColor = Colors.purple;
-    } else if (o.status == 'accepted') {
+    } else if (state == 'accepted' || o.status == 'accepted') {
       statusColor = AppTheme.primaryGreen;
     } else if (o.status == 'rejected') {
       statusColor = AppTheme.errorRed;
@@ -279,10 +288,11 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
             ),
             padding: EdgeInsets.fromLTRB(
                 24, 24, 24, 24 + MediaQuery.of(context).viewInsets.bottom),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -322,44 +332,24 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
                           .copyWith(fontWeight: FontWeight.bold)),
                   Text(o.notes, style: AppTheme.bodyLarge),
                 ],
+
+                // Phase 5: Reputation Impact
+                if (o.reputationImpact != 0) ...[
+                  const SizedBox(height: 12),
+                  _detailRow('Reputation Impact', 
+                    o.reputationImpact > 0 ? '+${o.reputationImpact}' : '${o.reputationImpact}'),
+                ],
+                
                 const SizedBox(height: 24),
                 
-                // Phase 2: Proceed to Payment Button
-                if (FeatureFlags.escrowEnabled && 
-                    o.tradeState == TradeState.accepted) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (isLoading) return;
-                        setState(() => isLoading = true);
-                        try {
-                          await _paymentService.holdPayment(o.id);
-                          if (context.mounted) {
-                             Navigator.pop(context);
-                             ScaffoldMessenger.of(context).showSnackBar( 
-                               const SnackBar(content: Text('Processing payment hold...')),
-                             );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                            );
-                            setState(() => isLoading = false);
-                          }
-                        }
-                      },
-                      style: ButtonStyle(
-                        backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                          if (isLoading) return Colors.grey;
-                          return Colors.purple;
-                        }),
-                      ),
-                      child: _buildButtonChild(isLoading), 
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+                // Phase 6: Removed lifecycle actions (moved to Retailer)
+
+                // Phase D: Delivery Tracking
+                if (o.deliveryTracking != null) ...[
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  DeliveryTimeline(currentStatus: o.deliveryTracking?.status ?? 'processing'),
+                  const SizedBox(height: 24),
                 ],
 
                 SizedBox(
@@ -370,22 +360,13 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
                     child: Text(ls.getLocalizedString('close')),
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           );
         }
       ),
     );
-  }
-
-  Widget _buildButtonChild(bool isLoading) {
-    if (isLoading) {
-      return const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(color: Colors.white));
-    }
-    return const Text("Proceed to Payment");
   }
 
   Widget _detailRow(String label, String value) {
@@ -396,8 +377,13 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
         children: [
           Text(label,
               style: AppTheme.bodyLarge.copyWith(color: Colors.grey[600])),
-          Text(value,
-              style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
         ],
       ),
     );

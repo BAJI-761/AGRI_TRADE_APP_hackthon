@@ -7,6 +7,8 @@ import '../../services/auth_service.dart';
 import '../../widgets/navigation_helper.dart';
 import '../../widgets/app_gradient_scaffold.dart';
 import '../../theme/app_theme.dart';
+import 'create_order_screen.dart';
+import 'retailer_profile_screen.dart';
 
 class RetailerSearchScreen extends StatefulWidget {
   const RetailerSearchScreen({super.key});
@@ -175,7 +177,7 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Expanded(
+                              Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -186,55 +188,81 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
                                         maxLines: 1,
                                       ),
                                       const SizedBox(height: 4),
-                                      Text(
-                                        (r['address'] ?? '-') as String,
-                                        style: AppTheme.bodySmall,
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 2,
-                                      ),
-                                      if (r['averageRating'] != null) ...[
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            ...List.generate(5, (index) {
-                                              final rating = (num.tryParse(r['averageRating'].toString()) ?? 0.0).toDouble();
-                                              return Icon(
-                                                index < rating.floor()
-                                                    ? Icons.star
-                                                    : (index < rating
-                                                        ? Icons.star_half
-                                                        : Icons.star_border),
-                                                color: Colors.amber,
-                                                size: 14,
-                                              );
-                                            }),
-                                            const SizedBox(width: 6),
-                                            Flexible(
-                                              child: Text(
-                                                (num.tryParse(r['averageRating'].toString()) ?? 0.0).toStringAsFixed(1),
-                                                style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.bold),
-                                              ),
+                                      // Location
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              (r['address'] ?? (ls.isTelugu ? 'అందుబాటులో లేదు' : 'Not Available')) as String,
+                                              style: AppTheme.bodySmall,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
                                             ),
-                                            if (r['totalReviews'] != null && (r['totalReviews'] as num) > 0) ...[
-                                              const SizedBox(width: 4),
-                                              Flexible(
-                                                child: Text(
-                                                  '(${r['totalReviews']})',
-                                                  style: AppTheme.bodySmall.copyWith(color: Colors.grey),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Specialization
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.category, size: 14, color: Colors.grey),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              r['specialization'] ?? (ls.isTelugu ? 'బియ్యం, గోధుమలు' : 'Rice, Wheat'),
+                                              style: AppTheme.bodySmall,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      
+                                      // Stats Row (Rating & Trades)
+                                      Row(
+                                        children: [
+                                           // Rating
+                                           if (r['averageRating'] != null) ...[
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.star, color: Colors.amber, size: 14),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  (num.tryParse(r['averageRating'].toString()) ?? 0.0).toStringAsFixed(1),
+                                                  style: AppTheme.bodySmall.copyWith(fontWeight: FontWeight.bold),
                                                 ),
+                                              ],
+                                            ),
+                                            const SizedBox(width: 12),
+                                          ],
+                                          
+                                          // Trades (Mocked for now if missing)
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.handshake, color: AppTheme.primaryGreen, size: 14),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${r['totalCompletedTrades'] ?? (ls.isTelugu ? '10+' : '10+')} ${ls.isTelugu ? 'వ్యాపారాలు' : 'Trades'}',
+                                                style: AppTheme.bodySmall,
                                               ),
                                             ],
-                                          ],
-                                        ),
-                                      ],
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),
-                                const Column(
+                                Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Icon(Icons.store_mall_directory, color: AppTheme.primaryGreen, size: 32),
+                                     if(r['isVerified'] == true)
+                                      const Icon(Icons.verified, color: Colors.blue, size: 24)
+                                     else
+                                      const Icon(Icons.store_mall_directory, color: AppTheme.primaryGreen, size: 32),
                                   ],
                                 ),
                               ],
@@ -243,30 +271,40 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: ElevatedButton.icon(
+                                  child: OutlinedButton(
                                     onPressed: () {
-                                      _showRetailerContactDialog(context, r);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => RetailerProfileScreen(retailerData: r),
+                                        ),
+                                      );
                                     },
-                                    icon: const Icon(Icons.phone, size: 18),
-                                    label: Text(ls.getLocalizedString('contact')),
-                                    style: AppTheme.primaryButtonStyle.copyWith(
-                                      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 12)),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: AppTheme.primaryGreen),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
+                                    child: Text(ls.isTelugu ? 'ప్రొఫైల్ చూడండి' : 'View Profile'),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: OutlinedButton.icon(
+                                  child: ElevatedButton(
                                     onPressed: () {
-                                      _showRatingDialog(context, r);
+                                       Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => CreateOrderScreen(retailerId: r['id'] ?? r['phone']),
+                                        ),
+                                      );
                                     },
-                                    icon: const Icon(Icons.rate_review, size: 18),
-                                    label: Text(ls.getLocalizedString('rate')),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: AppTheme.primaryGreen,
-                                      side: const BorderSide(color: AppTheme.primaryGreen),
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    style: AppTheme.primaryButtonStyle.copyWith(
+                                      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 12)),
+                                    ),
+                                    child: Text(
+                                      ls.isTelugu ? 'రిక్వెస్ట్ పంపండి' : 'Send Request',
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ),
@@ -287,208 +325,13 @@ class _RetailerSearchScreenState extends State<RetailerSearchScreen> {
     final lower = query.toLowerCase();
     return _retailers.where((r) {
       final name = (r['name'] ?? r['username'] ?? '').toString().toLowerCase();
-      final phone = (r['phone'] ?? '').toString().toLowerCase();
+      // Removed phone search to enhance privacy, or keep strictly internal? 
+      // Keeping internal search might be okay, but display is banned.
+      // Let's allow search by name primarily.
       final addr = (r['address'] ?? '').toString().toLowerCase();
-      final matchesSearch = lower.isEmpty || name.contains(lower) || phone.contains(lower) || addr.contains(lower);
+      final matchesSearch = lower.isEmpty || name.contains(lower) || addr.contains(lower);
       return matchesSearch;
     }).toList();
-  }
-
-  void _showRetailerContactDialog(BuildContext context, Map<String, dynamic> r) {
-    final ls = Provider.of<LanguageService>(context, listen: false);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(ls.getLocalizedString('contact_retailer'), style: AppTheme.headingSmall),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${ls.getLocalizedString('retailer_label')}: ${r['name'] ?? r['username'] ?? r['phone'] ?? r['id']}', style: AppTheme.bodyLarge),
-            const SizedBox(height: 8),
-            if ((r['address'] ?? '').toString().isNotEmpty) Text(r['address'], style: AppTheme.bodySmall),
-            const SizedBox(height: 16),
-            Text(ls.getLocalizedString('contact_information'), style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('${ls.getLocalizedString('phone')}: ${r['phone'] ?? '-'}', style: AppTheme.bodyLarge),
-            if ((r['email'] ?? '').toString().isNotEmpty)
-              Text('${ls.getLocalizedString('email')}: ${r['email']}', style: AppTheme.bodyLarge),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(ls.getLocalizedString('close'), style: const TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(ls.getLocalizedString('contact_request_sent')),
-                  backgroundColor: AppTheme.primaryGreen,
-                ),
-              );
-            },
-            style: AppTheme.primaryButtonStyle,
-            child: Text(ls.getLocalizedString('send_request')),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showRatingDialog(BuildContext context, Map<String, dynamic> retailer) {
-    double selectedRating = 0.0;
-    final reviewController = TextEditingController();
-    final ls = Provider.of<LanguageService>(context, listen: false);
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(ls.getLocalizedString('rate_retailer'), style: AppTheme.headingSmall),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${ls.getLocalizedString('retailer_label')}: ${retailer['name'] ?? retailer['username'] ?? retailer['phone'] ?? retailer['id']}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  ls.getLocalizedString('select_rating'),
-                  style: const TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (index) {
-                    final rating = (index + 1).toDouble();
-                    return GestureDetector(
-                      onTap: () {
-                        setDialogState(() {
-                          selectedRating = rating;
-                        });
-                      },
-                      child: Icon(
-                        selectedRating >= rating ? Icons.star : Icons.star_border,
-                        color: selectedRating >= rating ? Colors.amber : Colors.grey,
-                        size: 40,
-                      ),
-                    );
-                  }),
-                ),
-                if (selectedRating > 0) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    ls.getLocalizedString('write_review_optional'),
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: reviewController,
-                    decoration: AppTheme.inputDecoration.copyWith(
-                      hintText: ls.getLocalizedString('review_hint'),
-                    ),
-                    maxLines: 3,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(ls.getLocalizedString('cancel_btn'), style: const TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: selectedRating > 0
-                  ? () async {
-                      try {
-                        final authService = Provider.of<AuthService>(context, listen: false);
-                        final farmerId = authService.user?.uid ?? authService.phone ?? 'anonymous';
-                        final retailerId = retailer['id'] ?? retailer['phone'] ?? '';
-                        
-                        await FirebaseFirestore.instance
-                            .collection('retailer_reviews')
-                            .add({
-                          'retailerId': retailerId,
-                          'farmerId': farmerId,
-                          'rating': selectedRating,
-                          'review': reviewController.text.trim(),
-                          'createdAt': FieldValue.serverTimestamp(),
-                          'retailerName': retailer['name'] ?? retailer['username'] ?? '',
-                        });
-                        
-                        // Update retailer's average rating
-                        await _updateRetailerRating(retailerId);
-                        
-                        if (!mounted) return;
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(ls.getLocalizedString('review_submitted')),
-                            backgroundColor: AppTheme.primaryGreen,
-                          ),
-                        );
-                      } catch (e) {
-                        if (!mounted) return;
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error submitting review: $e'),
-                            backgroundColor: AppTheme.errorRed,
-                          ),
-                        );
-                      }
-                    }
-                  : null,
-              style: AppTheme.primaryButtonStyle,
-              child: Text(ls.getLocalizedString('submit')),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _updateRetailerRating(String retailerId) async {
-    try {
-      final reviewsSnapshot = await FirebaseFirestore.instance
-          .collection('retailer_reviews')
-          .where('retailerId', isEqualTo: retailerId)
-          .get();
-      
-      if (reviewsSnapshot.docs.isEmpty) return;
-      
-      double totalRating = 0.0;
-      int count = 0;
-      
-      for (var doc in reviewsSnapshot.docs) {
-        final data = doc.data();
-        final rating = data['rating'];
-        if (rating != null) {
-          totalRating += (rating is int ? rating.toDouble() : rating as double);
-          count++;
-        }
-      }
-      
-      if (count > 0) {
-        final averageRating = totalRating / count;
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(retailerId)
-            .update({
-          'averageRating': averageRating,
-          'totalReviews': count,
-        });
-      }
-    } catch (e) {
-      debugPrint('Error updating retailer rating: $e');
-    }
   }
 
   @override

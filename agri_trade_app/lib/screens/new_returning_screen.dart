@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/voice_service.dart';
 import '../services/language_service.dart';
 import '../theme/app_theme.dart';
-import 'phone_voice_input_screen.dart';
+
 import 'login_screen.dart';
 import 'registration_profile_screen.dart';
 
@@ -47,9 +47,7 @@ class _NewReturningScreenState extends State<NewReturningScreen>
     await voice.speak(text);
   }
 
-  void _goToPhoneFlow() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const PhoneVoiceInputScreen()));
-  }
+
 
   void _goToLogin() {
     Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
@@ -108,7 +106,7 @@ class _NewReturningScreenState extends State<NewReturningScreen>
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                     ),
                   ),
                 ),
@@ -160,9 +158,9 @@ class _NewReturningScreenState extends State<NewReturningScreen>
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
+              color: Colors.white.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
             ),
             child: Row(
               children: [
@@ -170,7 +168,7 @@ class _NewReturningScreenState extends State<NewReturningScreen>
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
+                    color: color.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Icon(icon, size: 28, color: Colors.white),
@@ -193,14 +191,14 @@ class _NewReturningScreenState extends State<NewReturningScreen>
                         subtitle,
                         style: GoogleFonts.inter(
                           fontSize: 13,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
                   ),
                 ),
                 Icon(Icons.arrow_forward_ios_rounded,
-                  size: 18, color: Colors.white.withOpacity(0.5)),
+                  size: 18, color: Colors.white.withValues(alpha: 0.5)),
               ],
             ),
           ),

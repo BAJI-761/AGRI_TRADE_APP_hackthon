@@ -7,7 +7,7 @@ import '../services/language_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card_wrapper.dart';
 import '../widgets/primary_button.dart';
-import 'user_type_selection_screen.dart';
+
 
 class RegistrationProfileScreen extends StatefulWidget {
   final String? phoneNumber;
@@ -149,14 +149,14 @@ class _RegistrationProfileScreenState extends State<RegistrationProfileScreen> {
       labelText: label,
       labelStyle: TextStyle(color: AppTheme.textSecondary),
       filled: true,
-      fillColor: Colors.white.withOpacity(0.8),
+      fillColor: Colors.white.withValues(alpha: 0.8),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppTheme.primaryGreen.withOpacity(0.2)),
+        borderSide: BorderSide(color: AppTheme.primaryGreen.withValues(alpha: 0.2)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -195,7 +195,7 @@ class _RegistrationProfileScreenState extends State<RegistrationProfileScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryGreen.withOpacity(0.1),
+                          color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(

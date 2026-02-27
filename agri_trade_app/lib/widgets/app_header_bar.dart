@@ -34,7 +34,7 @@ class AppHeaderBar extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(avatarIcon, color: Colors.white, size: 24),
@@ -49,7 +49,7 @@ class AppHeaderBar extends StatelessWidget {
                 Text(
                   greeting,
                   style: AppTheme.bodySmall.copyWith(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
                 Text(

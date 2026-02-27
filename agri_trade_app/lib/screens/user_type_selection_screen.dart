@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'package:provider/provider.dart';
 import '../services/voice_service.dart';
 import '../services/language_service.dart';
@@ -199,7 +199,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                               ? 'మీరు రైతు లేదా రిటైలర్?'
                               : 'Are you a Farmer or a Retailer?',
                           style: AppTheme.bodyMedium.copyWith(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -256,7 +256,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                         child: Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                             color: _isListening ? AppTheme.errorRed : Colors.white.withOpacity(0.2),
+                             color: _isListening ? AppTheme.errorRed : Colors.white.withValues(alpha: 0.2),
                              shape: BoxShape.circle,
                              border: Border.all(color: Colors.white, width: 2),
                              boxShadow: [
@@ -320,16 +320,16 @@ class _UserTypeCard extends StatelessWidget {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.white.withOpacity(0.15),
+          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isSelected ? activeColor : Colors.white.withOpacity(0.3),
+            color: isSelected ? activeColor : Colors.white.withValues(alpha: 0.3),
             width: isSelected ? 4 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: activeColor.withOpacity(0.4),
+                    color: activeColor.withValues(alpha: 0.4),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   )
@@ -342,7 +342,7 @@ class _UserTypeCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isSelected ? activeColor.withOpacity(0.1) : Colors.white.withOpacity(0.1),
+                color: isSelected ? activeColor.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -364,7 +364,7 @@ class _UserTypeCard extends StatelessWidget {
             Text(
               subtitle,
               style: AppTheme.bodyMedium.copyWith(
-                color: isSelected ? textColor.withOpacity(0.7) : Colors.white70,
+                color: isSelected ? textColor.withValues(alpha: 0.7) : Colors.white70,
                 fontSize: 14,
               ),
               textAlign: TextAlign.center,

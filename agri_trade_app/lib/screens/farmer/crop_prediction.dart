@@ -12,7 +12,7 @@ class CropPredictionScreen extends StatefulWidget {
   const CropPredictionScreen({super.key});
 
   @override
-  _CropPredictionScreenState createState() => _CropPredictionScreenState();
+  State<CropPredictionScreen> createState() => _CropPredictionScreenState();
 }
 
 class _CropPredictionScreenState extends State<CropPredictionScreen> {
@@ -29,8 +29,17 @@ class _CropPredictionScreenState extends State<CropPredictionScreen> {
   bool _isLoading = false;
   bool _isListening = false;
 
+  final _totalLandController = TextEditingController();
+  final _previousCropController = TextEditingController();
+  final _budgetController = TextEditingController();
+  
+  String _irrigationType = 'Rain-fed';
+  String _waterAvailability = 'Moderate';
+  String _laborAvailability = 'Moderate';
+  String _marketDemand = 'Moderate';
+
   final List<String> _soilTypes = [
-    'Clay', 'Sandy', 'Loamy', 'Silt', 'Peaty', 'Chalky'
+    'Clay', 'Sandy', 'Loamy', 'Silt', 'Peaty', 'Chalky', 'Black', 'Red'
   ];
 
   final List<String> _weatherConditions = [
@@ -38,7 +47,19 @@ class _CropPredictionScreenState extends State<CropPredictionScreen> {
   ];
 
   final List<String> _seasons = [
-    'Spring', 'Summer', 'Autumn', 'Winter', 'Monsoon'
+    'Spring', 'Summer', 'Autumn', 'Winter', 'Monsoon', 'Kharif', 'Rabi', 'Zaid'
+  ];
+  
+  final List<String> _irrigationTypes = [
+    'Rain-fed', 'Canal', 'Well', 'Drip', 'Sprinkler'
+  ];
+  
+  final List<String> _availabilityLevels = [
+    'High', 'Moderate', 'Low'
+  ];
+  
+  final List<String> _laborLevels = [
+    'Readily Available', 'Moderate', 'Scarce'
   ];
 
   @override
@@ -49,6 +70,9 @@ class _CropPredictionScreenState extends State<CropPredictionScreen> {
     _locationController.dispose();
     _soilPhController.dispose();
     _rainfallController.dispose();
+    _totalLandController.dispose();
+    _previousCropController.dispose();
+    _budgetController.dispose();
     super.dispose();
   }
 
@@ -126,6 +150,13 @@ class _CropPredictionScreenState extends State<CropPredictionScreen> {
         soil: _soilController.text,
         weather: _weatherController.text,
         season: _seasonController.text,
+        totalLand: _totalLandController.text,
+        irrigationType: _irrigationType,
+        waterAvailability: _waterAvailability,
+        previousCrop: _previousCropController.text,
+        marketDemand: _marketDemand,
+        budgetRange: _budgetController.text,
+        laborAvailability: _laborAvailability,
         location: _locationController.text.isEmpty ? null : _locationController.text,
         soilPh: _soilPhController.text.isEmpty ? null : _soilPhController.text,
         rainfall: _rainfallController.text.isEmpty ? null : _rainfallController.text,
@@ -137,7 +168,11 @@ class _CropPredictionScreenState extends State<CropPredictionScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.errorRed));
+        String message = 'Error: $e';
+        if (e.toString().contains('404')) {
+          message = 'AI Model Error (404): The API Key might be invalid or the model is unavailable.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: AppTheme.errorRed));
       }
     }
   }
@@ -158,9 +193,12 @@ class _CropPredictionScreenState extends State<CropPredictionScreen> {
                 onPressed: () => Navigator.pop(context),
               ),
               const SizedBox(width: 8),
-              Text(
-                ls.getLocalizedString('crop_prediction'),
-                style: AppTheme.headingMedium.copyWith(color: Colors.white),
+              Expanded(
+                child: Text(
+                  ls.getLocalizedString('crop_prediction'),
+                  style: AppTheme.headingMedium.copyWith(color: Colors.white),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -213,6 +251,84 @@ class _CropPredictionScreenState extends State<CropPredictionScreen> {
               ),
               const SizedBox(height: 16),
 
+              const SizedBox(height: 16),
+              
+              // New Phase C Fields
+              TextFormField(
+                controller: _totalLandController,
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.currentLanguage == 'te' ? 'మొత్తం భూమి (ఎకరాలు)' : 'Total Land (Acres)',
+                  prefixIcon: const Icon(Icons.aspect_ratio, color: AppTheme.primaryGreen),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (v) => v?.isEmpty == true ? ls.getLocalizedString('required') : null,
+              ),
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<String>(
+                value: _irrigationType,
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.currentLanguage == 'te' ? 'నీటిపారుదల రకం' : 'Irrigation Type',
+                  prefixIcon: const Icon(Icons.water_drop, color: AppTheme.primaryGreen),
+                ),
+                items: _irrigationTypes.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+                onChanged: (v) => setState(() => _irrigationType = v!),
+              ),
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<String>(
+                value: _waterAvailability,
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.currentLanguage == 'te' ? 'నీటి లభ్యత' : 'Water Availability',
+                  prefixIcon: const Icon(Icons.opacity, color: AppTheme.primaryGreen),
+                ),
+                items: _availabilityLevels.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+                onChanged: (v) => setState(() => _waterAvailability = v!),
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _previousCropController,
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.currentLanguage == 'te' ? 'మునుపటి పంట' : 'Previous Crop',
+                  prefixIcon: const Icon(Icons.history, color: AppTheme.primaryGreen),
+                ),
+                validator: (v) => v?.isEmpty == true ? ls.getLocalizedString('required') : null,
+              ),
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<String>(
+                value: _marketDemand,
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.currentLanguage == 'te' ? 'మార్కెట్ డిమాండ్ (అంచనా)' : 'Market Demand (Est.)',
+                  prefixIcon: const Icon(Icons.trending_up, color: AppTheme.primaryGreen),
+                ),
+                items: _availabilityLevels.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+                onChanged: (v) => setState(() => _marketDemand = v!),
+              ),
+              const SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _budgetController,
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.currentLanguage == 'te' ? 'బడ్జెట్ శ్రేణి (₹)' : 'Budget Range (₹)',
+                  prefixIcon: const Icon(Icons.currency_rupee, color: AppTheme.primaryGreen),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (v) => v?.isEmpty == true ? ls.getLocalizedString('required') : null,
+              ),
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<String>(
+                value: _laborAvailability,
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.currentLanguage == 'te' ? 'శ్రామికుల లభ్యత' : 'Labor Availability',
+                  prefixIcon: const Icon(Icons.people, color: AppTheme.primaryGreen),
+                ),
+                items: _laborLevels.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+                onChanged: (v) => setState(() => _laborAvailability = v!),
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _locationController,
                 decoration: AppTheme.inputDecoration.copyWith(
@@ -293,6 +409,11 @@ class _CropPredictionScreenState extends State<CropPredictionScreen> {
   }
 
   Widget _buildPredictionCard(CropPrediction prediction) {
+    Color riskColor = Colors.grey;
+    if (prediction.riskLevel.toLowerCase().contains('low')) riskColor = AppTheme.primaryGreen;
+    else if (prediction.riskLevel.toLowerCase().contains('medium')) riskColor = AppTheme.secondaryAmber;
+    else if (prediction.riskLevel.toLowerCase().contains('high')) riskColor = AppTheme.errorRed;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: AppTheme.cardDecoration,
@@ -303,13 +424,58 @@ class _CropPredictionScreenState extends State<CropPredictionScreen> {
           child: Text('${(prediction.confidence * 100).toInt()}%', style: const TextStyle(color: Colors.white, fontSize: 12)),
         ),
         title: Text(prediction.crop, style: AppTheme.headingSmall.copyWith(fontSize: 18)),
-        subtitle: Text('Confidence: ${(prediction.confidence * 100).toStringAsFixed(0)}%'),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Confidence: ${(prediction.confidence * 100).toStringAsFixed(0)}%'),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: riskColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: riskColor),
+                  ),
+                  child: Text(
+                    'Risk: ${prediction.riskLevel}',
+                    style: TextStyle(color: riskColor, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 _buildInfoRow('Description', prediction.description),
+                const SizedBox(height: 12),
+                _buildInfoRow('Est. Profit', prediction.estimatedProfit, isBold: true),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(width: 100, child: Text('Market Trend', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          LinearProgressIndicator(
+                            value: prediction.marketTrendScore / 10.0,
+                            backgroundColor: Colors.grey[200],
+                            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryGreen),
+                          ),
+                          const SizedBox(height: 4),
+                          Text('${prediction.marketTrendScore}/10', style: const TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 if (prediction.bestTimeToPlant.isNotEmpty) _buildInfoRow('Best Time', prediction.bestTimeToPlant),
                 const SizedBox(height: 12),
@@ -322,12 +488,15 @@ class _CropPredictionScreenState extends State<CropPredictionScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, {bool isBold = false}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(width: 100, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
-        Expanded(child: Text(value, style: const TextStyle(color: AppTheme.textDark))),
+        Expanded(child: Text(value, style: TextStyle(
+          color: AppTheme.textDark,
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+        ))),
       ],
     );
   }

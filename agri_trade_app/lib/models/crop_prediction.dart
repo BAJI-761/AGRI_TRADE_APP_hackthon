@@ -6,6 +6,9 @@ class CropPrediction {
   final List<String> careTips;
   final String bestTimeToPlant;
   final String expectedYield;
+  final String riskLevel;
+  final double marketTrendScore;
+  final String estimatedProfit;
 
   CropPrediction({
     required this.crop,
@@ -15,6 +18,9 @@ class CropPrediction {
     required this.careTips,
     required this.bestTimeToPlant,
     required this.expectedYield,
+    this.riskLevel = 'Medium',
+    this.marketTrendScore = 5.0,
+    this.estimatedProfit = 'N/A',
   });
 
   factory CropPrediction.fromJson(Map<String, dynamic> json) {
@@ -26,6 +32,9 @@ class CropPrediction {
       careTips: List<String>.from(json['careTips'] ?? []),
       bestTimeToPlant: json['bestTimeToPlant'] ?? '',
       expectedYield: json['expectedYield'] ?? '',
+      riskLevel: json['riskLevel'] ?? 'Medium',
+      marketTrendScore: (json['marketTrendScore'] ?? 5.0).toDouble(),
+      estimatedProfit: json['estimatedProfit'] ?? 'N/A',
     );
   }
 
@@ -38,6 +47,9 @@ class CropPrediction {
       'careTips': careTips,
       'bestTimeToPlant': bestTimeToPlant,
       'expectedYield': expectedYield,
+      'riskLevel': riskLevel,
+      'marketTrendScore': marketTrendScore,
+      'estimatedProfit': estimatedProfit,
     };
   }
 }

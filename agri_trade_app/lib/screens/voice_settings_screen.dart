@@ -60,12 +60,12 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                     padding: const EdgeInsets.all(20),
                     decoration: AppTheme.cardDecoration.copyWith(
                       color: voiceService.isVoiceEnabled 
-                          ? AppTheme.primaryGreen.withOpacity(0.05)
-                          : AppTheme.errorRed.withOpacity(0.05),
+                          ? AppTheme.primaryGreen.withValues(alpha: 0.05)
+                          : AppTheme.errorRed.withValues(alpha: 0.05),
                       border: Border.all(
                         color: voiceService.isVoiceEnabled 
-                            ? AppTheme.primaryGreen.withOpacity(0.3)
-                            : AppTheme.errorRed.withOpacity(0.3),
+                            ? AppTheme.primaryGreen.withValues(alpha: 0.3)
+                            : AppTheme.errorRed.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -77,7 +77,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -153,7 +153,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                             ],
                           ),
                         ),
-                        Divider(height: 32, color: Colors.grey.withOpacity(0.1)),
+                        Divider(height: 32, color: Colors.grey.withValues(alpha: 0.1)),
                         _buildSettingRow(
                           'Role Context',
                           Wrap(
@@ -195,7 +195,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                                 : voiceService.stopTrainingMode(),
                           ),
                         ),
-                        Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                        Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           title: const Text('Clear Offline Cache', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -214,9 +214,9 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
@@ -286,7 +286,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
           border: Border.all(color: isSelected ? AppTheme.primaryGreen : Colors.grey[300]!),
           boxShadow: isSelected ? [
             BoxShadow(
-              color: AppTheme.primaryGreen.withOpacity(0.3),
+              color: AppTheme.primaryGreen.withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 2),
             )

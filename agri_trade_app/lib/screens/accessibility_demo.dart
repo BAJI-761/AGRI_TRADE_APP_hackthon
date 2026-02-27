@@ -4,7 +4,6 @@ import '../services/voice_service.dart';
 import '../services/offline_service.dart';
 import '../services/language_service.dart';
 import '../widgets/voice_assistant_widget.dart';
-import '../widgets/accessibility_widgets.dart';
 import '../widgets/navigation_helper.dart';
 import '../widgets/app_gradient_scaffold.dart';
 import '../theme/app_theme.dart';
@@ -20,7 +19,7 @@ class AccessibilityDemoScreen extends StatefulWidget {
   const AccessibilityDemoScreen({super.key});
 
   @override
-  _AccessibilityDemoScreenState createState() => _AccessibilityDemoScreenState();
+  State<AccessibilityDemoScreen> createState() => _AccessibilityDemoScreenState();
 }
 
 class _AccessibilityDemoScreenState extends State<AccessibilityDemoScreen> {

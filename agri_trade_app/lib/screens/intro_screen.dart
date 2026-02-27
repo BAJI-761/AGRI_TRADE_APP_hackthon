@@ -148,7 +148,7 @@ class _IntroScreenState extends State<IntroScreen>
                   height: 200,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                   ),
                 ),
               ),
@@ -160,7 +160,7 @@ class _IntroScreenState extends State<IntroScreen>
                   height: 250,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.04),
+                    color: Colors.white.withValues(alpha: 0.04),
                   ),
                 ),
               ),
@@ -195,7 +195,7 @@ class _IntroScreenState extends State<IntroScreen>
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppTheme.secondaryAmber.withOpacity(0.4),
+                                      color: AppTheme.secondaryAmber.withValues(alpha: 0.4),
                                       blurRadius: 40,
                                       spreadRadius: 8,
                                       offset: const Offset(0, 8),
@@ -247,7 +247,7 @@ class _IntroScreenState extends State<IntroScreen>
                                       shaderCallback: (bounds) => LinearGradient(
                                         colors: [
                                           Colors.white,
-                                          Colors.white.withOpacity(0.5),
+                                          Colors.white.withValues(alpha: 0.5),
                                           Colors.white,
                                         ],
                                         stops: [
@@ -274,7 +274,7 @@ class _IntroScreenState extends State<IntroScreen>
                                   'Voice-Powered Agricultural Trading',
                                   style: GoogleFonts.inter(
                                     fontSize: 15,
-                                    color: Colors.white.withOpacity(0.85),
+                                    color: Colors.white.withValues(alpha: 0.85),
                                     letterSpacing: 1.5,
                                     fontWeight: FontWeight.w400,
                                   ),
@@ -301,7 +301,7 @@ class _IntroScreenState extends State<IntroScreen>
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white.withOpacity(0.7),
+                                Colors.white.withValues(alpha: 0.7),
                               ),
                             ),
                           ),
@@ -338,7 +338,7 @@ class _PremiumParticlePainter extends CustomPainter {
       final offsetY = y + radius * math.sin(angle * 0.3 + i);
       
       final opacity = 0.04 + (math.sin(angle + i) * 0.03);
-      paint.color = Colors.white.withOpacity(opacity.clamp(0.01, 0.1));
+      paint.color = Colors.white.withValues(alpha: opacity.clamp(0.01, 0.1));
 
       canvas.drawCircle(
         Offset(offsetX, offsetY),

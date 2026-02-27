@@ -18,7 +18,7 @@ class VoiceAssistantWidget extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _VoiceAssistantWidgetState createState() => _VoiceAssistantWidgetState();
+  State<VoiceAssistantWidget> createState() => _VoiceAssistantWidgetState();
 }
 
 class _VoiceAssistantWidgetState extends State<VoiceAssistantWidget>

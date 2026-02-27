@@ -6,13 +6,18 @@ import '../../services/voice_service.dart';
 import '../../services/language_service.dart';
 import '../../services/notification_service.dart';
 import '../../models/order.dart' as model;
+import 'package:image_picker/image_picker.dart';
+import 'dart:io'; // To handle file paths
+import 'dart:convert'; // For Base64 encoding
 
 import '../../theme/app_theme.dart';
 import '../../widgets/app_gradient_scaffold.dart';
 import '../../widgets/primary_button.dart';
 
 class CreateOrderScreen extends StatefulWidget {
-  const CreateOrderScreen({super.key});
+  final String? retailerId; // Optional: for direct trade requests
+
+  const CreateOrderScreen({super.key, this.retailerId});
 
   @override
   State<CreateOrderScreen> createState() => _CreateOrderScreenState();
@@ -30,6 +35,42 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   bool _submitting = false;
   bool _isListening = false;
 
+  // Phase B: Quality & Details State
+  final _moistureController = TextEditingController();
+  final _storageDurationController = TextEditingController();
+  final _landAreaController = TextEditingController();
+  final _varietyController = TextEditingController();
+  final _pesticidesController = TextEditingController();
+  final _gstController = TextEditingController();
+  
+  DateTime? _cultivatedDate;
+  DateTime? _harvestedDate;
+  
+  String _storageType = 'Warehouse';
+  final List<String> _storageTypes = ['Cold Storage', 'Warehouse', 'Open', 'Natural Dry'];
+  
+  String _packaging = 'Sack';
+  final List<String> _packagingTypes = ['Loose', 'Sack', 'Box'];
+
+  String _grade = 'B';
+  final List<String> _grades = ['A', 'B', 'C'];
+  
+  bool _isOrganic = false;
+  
+  // Simulated Media (Updated for ImagePicker)
+  final List<XFile> _cropImages = []; 
+  final ImagePicker _picker = ImagePicker();
+  String? _videoUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.retailerId != null) {
+      // Pre-fill notes or handle UI for direct request
+      _notesController.text = 'Direct trade request to retailer.';
+    }
+  }
+
   @override
   void dispose() {
     _cropController.dispose();
@@ -38,6 +79,14 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     _unitController.dispose();
     _locationController.dispose();
     _notesController.dispose();
+    
+    // Phase B Dispose
+    _moistureController.dispose();
+    _storageDurationController.dispose();
+    _landAreaController.dispose();
+    _varietyController.dispose();
+    _pesticidesController.dispose();
+    _gstController.dispose();
     super.dispose();
   }
 
@@ -92,6 +141,59 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     }
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 70, // Optimized for PDF generation
+      );
+      
+      if (pickedFile != null) {
+        setState(() {
+          _cropImages.add(pickedFile);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Error: $e')),
+         );
+      }
+    }
+  }
+
+  void _showImagePickerOptions() {
+    final ls = Provider.of<LanguageService>(context, listen: false);
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: Text(ls.currentLanguage == 'te' ? 'కెమెరా' : 'Camera'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: Text(ls.currentLanguage == 'te' ? 'గ్యాలరీ' : 'Gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _submitOrder() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
@@ -115,6 +217,13 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           : 'Unable to identify farmer. Please log in again.');
       }
       
+      // Convert images to Base64
+      List<String> base64Images = [];
+      for (var img in _cropImages) {
+        final bytes = await img.readAsBytes();
+        base64Images.add(base64Encode(bytes));
+      }
+
       final order = model.Order(
         id: '',
         farmerId: farmerId,
@@ -127,6 +236,23 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         notes: _notesController.text.trim(),
         createdAt: DateTime.now(),
         status: 'pending',
+        retailerId: widget.retailerId, // Set the specific retailer ID
+        
+        // Phase B Fields
+        cropImages: base64Images, // Store Base64 strings
+        videoUrl: _videoUrl,
+        cultivatedDate: _cultivatedDate,
+        harvestedDate: _harvestedDate,
+        storageType: _storageType,
+        storageDuration: int.tryParse(_storageDurationController.text) ?? 0,
+        moistureContent: double.tryParse(_moistureController.text) ?? 0.0,
+        isOrganic: _isOrganic,
+        pesticidesUsed: _isOrganic ? 'No' : _pesticidesController.text.trim(),
+        gstNumber: _gstController.text.trim(),
+        packaging: _packaging,
+        grade: _grade,
+        landArea: double.tryParse(_landAreaController.text) ?? 0.0,
+        cropVariety: _varietyController.text.trim(),
       );
       
       final service = OrderService();
@@ -370,6 +496,270 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                   labelText: ls.getLocalizedString('location'),
                   prefixIcon: const Icon(Icons.location_on, color: AppTheme.primaryGreen),
                 ),
+              ),
+              const SizedBox(height: 16),
+              
+              const Divider(),
+              const SizedBox(height: 16),
+              
+              // Quality & Details Header
+              Text(
+                ls.currentLanguage == 'te' ? 'నాణ్యత & వివరాలు' : 'Quality & Details',
+                style: AppTheme.headingSmall,
+              ),
+              const SizedBox(height: 16),
+
+              // 1. Images & Video (Simulated)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ls.currentLanguage == 'te' ? 'పంట ఫోటోలు (కనీసం 1)' : 'Crop Images (Min 1)',
+                      style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ..._cropImages.map((img) => Stack(
+                          children: [
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(8),
+                                image: DecorationImage(
+                                  image: FileImage(File(img.path)),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: () => setState(() => _cropImages.remove(img)),
+                                child: Container(
+                                  color: Colors.black54,
+                                  child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )),
+                        GestureDetector(
+                          onTap: _showImagePickerOptions,
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppTheme.primaryGreen, style: BorderStyle.solid), // Fixed Dashed Border Error
+                            ),
+                            child: const Icon(Icons.add_a_photo, color: AppTheme.primaryGreen),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_cropImages.isEmpty && _submitting)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          ls.currentLanguage == 'te' ? 'ఫోటో అవసరం' : 'Image required',
+                          style: TextStyle(color: AppTheme.errorRed, fontSize: 12),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 2. Dates (Cultivated & Harvested)
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now().subtract(const Duration(days: 90)),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null) setState(() => _cultivatedDate = picked);
+                      },
+                      child: AbsorbPointer(
+                        child: TextFormField(
+                          controller: TextEditingController(
+                            text: _cultivatedDate == null ? '' : '${_cultivatedDate!.day}/${_cultivatedDate!.month}/${_cultivatedDate!.year}'
+                          ),
+                          decoration: AppTheme.inputDecoration.copyWith(
+                            labelText: ls.currentLanguage == 'te' ? 'సాగు తేదీ' : 'Cultivated Date',
+                            suffixIcon: const Icon(Icons.calendar_month),
+                          ),
+                          validator: (v) => _cultivatedDate == null ? ls.getLocalizedString('required') : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null) setState(() => _harvestedDate = picked);
+                      },
+                      child: AbsorbPointer(
+                        child: TextFormField(
+                          controller: TextEditingController(
+                              text: _harvestedDate == null ? '' : '${_harvestedDate!.day}/${_harvestedDate!.month}/${_harvestedDate!.year}'
+                          ),
+                          decoration: AppTheme.inputDecoration.copyWith(
+                            labelText: ls.currentLanguage == 'te' ? 'కోత తేదీ' : 'Harvested Date',
+                            suffixIcon: const Icon(Icons.calendar_month),
+                          ),
+                          validator: (v) => _harvestedDate == null ? ls.getLocalizedString('required') : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 3. Storage
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      value: _storageType,
+                      decoration: AppTheme.inputDecoration.copyWith(
+                        labelText: ls.currentLanguage == 'te' ? 'నిల్వ రకం' : 'Storage Type',
+                      ),
+                      items: _storageTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                      onChanged: (v) => setState(() => _storageType = v!),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 1,
+                    child: TextFormField(
+                      controller: _storageDurationController,
+                      decoration: AppTheme.inputDecoration.copyWith(
+                        labelText: ls.currentLanguage == 'te' ? 'రోజులు' : 'Days',
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (v) => v?.isEmpty == true ? ls.getLocalizedString('required') : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 4. Moisture & Land Area
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _moistureController,
+                      decoration: AppTheme.inputDecoration.copyWith(
+                        labelText: ls.currentLanguage == 'te' ? 'తేమ (%)' : 'Moisture (%)',
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (v) => v?.isEmpty == true ? ls.getLocalizedString('required') : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _landAreaController,
+                      decoration: AppTheme.inputDecoration.copyWith(
+                        labelText: ls.currentLanguage == 'te' ? 'భూమి (ఎకరాలు)' : 'Land (Acres)',
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (v) => v?.isEmpty == true ? ls.getLocalizedString('required') : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 5. Variety & Organic
+              TextFormField(
+                controller: _varietyController,
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.currentLanguage == 'te' ? 'పంట రకం/రకం' : 'Crop Variety',
+                ),
+                validator: (v) => v?.isEmpty == true ? ls.getLocalizedString('required') : null,
+              ),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                title: Text(ls.currentLanguage == 'te' ? 'సేంద్రీయ?' : 'Organic?'),
+                value: _isOrganic,
+                onChanged: (v) => setState(() => _isOrganic = v),
+                activeColor: AppTheme.primaryGreen,
+              ),
+              if (!_isOrganic)
+                TextFormField(
+                  controller: _pesticidesController,
+                  decoration: AppTheme.inputDecoration.copyWith(
+                    labelText: ls.currentLanguage == 'te' ? 'పురుగుమందుల పేరు' : 'Pesticide Name',
+                  ),
+                  validator: (v) => !_isOrganic && v?.isEmpty == true ? ls.getLocalizedString('required') : null,
+                ),
+              const SizedBox(height: 16),
+
+              // 6. Packaging & Grade
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _packaging,
+                      decoration: AppTheme.inputDecoration.copyWith(
+                        labelText: ls.currentLanguage == 'te' ? 'ప్యాకేజింగ్' : 'Packaging',
+                      ),
+                      items: _packagingTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                      onChanged: (v) => setState(() => _packaging = v!),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _grade,
+                      decoration: AppTheme.inputDecoration.copyWith(
+                        labelText: ls.currentLanguage == 'te' ? 'గ్రేడ్' : 'Grade',
+                      ),
+                      items: _grades.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                      onChanged: (v) => setState(() => _grade = v!),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 7. GST
+              TextFormField(
+                controller: _gstController,
+                decoration: AppTheme.inputDecoration.copyWith(
+                  labelText: ls.currentLanguage == 'te' ? 'GST సంఖ్య' : 'GST Number',
+                ),
+                validator: (v) => v?.isEmpty == true ? ls.getLocalizedString('required') : null,
               ),
               const SizedBox(height: 16),
               

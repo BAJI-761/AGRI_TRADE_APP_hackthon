@@ -10,7 +10,7 @@ class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
 
   @override
-  _LanguageSelectionScreenState createState() => _LanguageSelectionScreenState();
+  State<LanguageSelectionScreen> createState() => _LanguageSelectionScreenState();
 }
 
 class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
@@ -96,7 +96,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                                         gradient: LinearGradient(
                                           colors: [
                                             AppTheme.primaryGreenSurface,
-                                            AppTheme.primaryGreenSurface.withOpacity(0.5),
+                                            AppTheme.primaryGreenSurface.withValues(alpha: 0.5),
                                           ],
                                         ),
                                         shape: BoxShape.circle,
@@ -182,7 +182,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: AppTheme.primaryGreen,
                                           foregroundColor: Colors.white,
-                                          disabledBackgroundColor: AppTheme.primaryGreen.withOpacity(0.3),
+                                          disabledBackgroundColor: AppTheme.primaryGreen.withValues(alpha: 0.3),
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(16),
                                           ),
@@ -241,10 +241,10 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                                     Container(
                                       padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
-                                        color: AppTheme.accentBlue.withOpacity(0.06),
+                                        color: AppTheme.accentBlue.withValues(alpha: 0.06),
                                         borderRadius: BorderRadius.circular(16),
                                         border: Border.all(
-                                          color: AppTheme.accentBlue.withOpacity(0.12),
+                                          color: AppTheme.accentBlue.withValues(alpha: 0.12),
                                         ),
                                       ),
                                       child: Column(
@@ -269,7 +269,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                                           Text(
                                             languageService.getLocalizedString('voice_description'),
                                             style: GoogleFonts.inter(
-                                              color: AppTheme.accentBlue.withOpacity(0.8),
+                                              color: AppTheme.accentBlue.withValues(alpha: 0.8),
                                               fontSize: 12,
                                             ),
                                             textAlign: TextAlign.center,
@@ -311,7 +311,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
         curve: Curves.easeOut,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.08) : AppTheme.surfaceLight,
+          color: isSelected ? color.withValues(alpha: 0.08) : AppTheme.surfaceLight,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isSelected ? color : AppTheme.surfaceLight,
@@ -319,7 +319,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
           ),
           boxShadow: isSelected
               ? [BoxShadow(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 )]
@@ -331,7 +331,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(

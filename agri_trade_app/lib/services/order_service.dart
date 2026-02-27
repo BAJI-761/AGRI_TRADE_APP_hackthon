@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import '../models/trade_enums.dart';
+
 import '../models/order.dart' as model;
 import 'notification_service.dart';
 
@@ -18,8 +18,9 @@ class OrderService {
   Future<String> createOrder(model.Order order) async {
     try {
       final data = order.toMap();
-      // Ensure status present
+      // Ensure status and tradeState present
       data['status'] = data['status'] ?? 'pending';
+      data['tradeState'] = data['tradeState'] ?? 'pending';
       
       debugPrint('Creating order with data: $data');
       final doc = await _ordersCol.add(data);
@@ -113,8 +114,7 @@ class OrderService {
 
   Future<void> acceptOrder(String orderId) async {
     await _ordersCol.doc(orderId).update({
-      'status': 'accepted',
-      'tradeState': TradeState.accepted.name,
+      'tradeState': 'accepted',
     });
     
     // Notify farmer about order acceptance
@@ -137,7 +137,7 @@ class OrderService {
   }
 
   Future<void> rejectOrder(String orderId) async {
-    await _ordersCol.doc(orderId).update({'status': 'rejected'});
+    await _ordersCol.doc(orderId).update({'tradeState': 'rejected'});
     
     // Notify farmer about order rejection
     if (_notificationService != null) {
@@ -156,6 +156,11 @@ class OrderService {
         debugPrint('Error notifying order rejection: $e');
       }
     }
+  }
+  Future<void> updateDeliveryTracking(String orderId, model.DeliveryTracking tracking) async {
+    await _ordersCol.doc(orderId).update({
+      'deliveryTracking': tracking.toMap(),
+    });
   }
 }
 

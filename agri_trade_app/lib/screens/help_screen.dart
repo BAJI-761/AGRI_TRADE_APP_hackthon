@@ -52,7 +52,7 @@ class HelpScreen extends StatelessWidget {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                      color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.mic, color: AppTheme.primaryGreen),
@@ -68,8 +68,8 @@ class HelpScreen extends StatelessWidget {
            Container(
             padding: const EdgeInsets.all(16),
             decoration: AppTheme.cardDecoration.copyWith(
-              color: AppTheme.secondaryAmber.withOpacity(0.1),
-              border: Border.all(color: AppTheme.secondaryAmber.withOpacity(0.3)),
+              color: AppTheme.secondaryAmber.withValues(alpha: 0.1),
+              border: Border.all(color: AppTheme.secondaryAmber.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [

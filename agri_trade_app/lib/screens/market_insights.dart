@@ -87,7 +87,7 @@ class _MarketInsightsScreenState extends State<MarketInsightsScreen> {
                      Container(
                        padding: const EdgeInsets.all(8),
                        decoration: BoxDecoration(
-                         color: AppTheme.primaryGreen.withOpacity(0.1),
+                         color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                          shape: BoxShape.circle,
                        ),
                        child: const Icon(Icons.trending_up, color: AppTheme.primaryGreen, size: 24),
@@ -143,11 +143,11 @@ class _MarketInsightsScreenState extends State<MarketInsightsScreen> {
             child: Column(
               children: [
                 _buildTrendingCrop('Wheat', '+5.2%', 52.50, AppTheme.primaryGreen, context),
-                Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
                 _buildTrendingCrop('Rice', '+2.1%', 30.75, AppTheme.primaryGreen, context),
-                Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
                 _buildTrendingCrop('Corn', '-1.8%', 24.20, AppTheme.errorRed, context),
-                Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
                 _buildTrendingCrop('Soybeans', '+3.4%', 45.80, AppTheme.primaryGreen, context),
               ],
             ),
@@ -168,11 +168,11 @@ class _MarketInsightsScreenState extends State<MarketInsightsScreen> {
             child: Column(
               children: [
                 _buildNewsItem('Global wheat demand increases due to supply chain disruptions', context),
-                Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
                 _buildNewsItem('Rice prices stabilize after recent fluctuations', context),
-                Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
                 _buildNewsItem('New agricultural policies expected to impact crop prices', context),
-                Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
                 _buildNewsItem('Weather conditions favorable for upcoming harvest season', context),
               ],
             ),
@@ -193,11 +193,11 @@ class _MarketInsightsScreenState extends State<MarketInsightsScreen> {
             child: Column(
               children: [
                 _buildAlertItem('Wheat prices up 5% this week', ls),
-                Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
                 _buildAlertItem('Rice demand remains stable', ls),
-                Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
                 _buildAlertItem('Corn prices expected to rise next month', ls),
-                Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
                 _buildAlertItem('Soybean exports increase by 15%', ls),
               ],
             ),
@@ -235,13 +235,13 @@ class _MarketInsightsScreenState extends State<MarketInsightsScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: insights.length,
-                  separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                  separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
                   itemBuilder: (context, index) {
                     return ListTile(
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.purple.withOpacity(0.1),
+                          color: Colors.purple.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.analytics, color: Colors.purple, size: 20),
@@ -296,7 +296,7 @@ class _MarketInsightsScreenState extends State<MarketInsightsScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(
@@ -318,7 +318,7 @@ class _MarketInsightsScreenState extends State<MarketInsightsScreen> {
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
@@ -343,7 +343,7 @@ class _MarketInsightsScreenState extends State<MarketInsightsScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.blue.withOpacity(0.1),
+          color: Colors.blue.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: const Icon(Icons.article, color: Colors.blue, size: 20),
@@ -374,7 +374,7 @@ class _MarketInsightsScreenState extends State<MarketInsightsScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.secondaryAmber.withOpacity(0.1),
+          color: AppTheme.secondaryAmber.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: const Icon(Icons.notifications, color: AppTheme.secondaryAmber, size: 20),

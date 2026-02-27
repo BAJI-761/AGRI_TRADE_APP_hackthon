@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import '../models/trade_enums.dart';
+
 
 class PaymentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -9,19 +9,18 @@ class PaymentService {
       _firestore.collection('orders');
 
   /// Simulates holding payment in escrow.
-  /// Transitions tradeState to [TradeState.paymentHeld].
+  /// Updates tradeState to 'paymentHeld'.
   Future<void> holdPayment(String orderId) async {
     try {
-      debugPrint('Holding payment for order: $orderId');
-      
-      await _ordersCol.doc(orderId).update({
-        'tradeState': TradeState.paymentHeld.name,
+      debugPrint('Proceed clicked - Updating Payment State directly');
+      await _firestore.collection("orders").doc(orderId).update({
+        "tradeState": "paymentHeld",
       });
-
-      debugPrint('✅ Payment held successfully');
+      debugPrint('Payment state updated to paymentHeld');
     } catch (e) {
       debugPrint('❌ Error holding payment: $e');
       rethrow;
     }
   }
+
 }

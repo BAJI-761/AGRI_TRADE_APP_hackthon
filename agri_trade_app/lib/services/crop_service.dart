@@ -1,30 +1,38 @@
 import '../models/crop_prediction.dart';
-import 'gemini_service.dart';
+import 'smart_crop_engine.dart';
 
 class CropService {
-  final GeminiService _geminiService = GeminiService();
-
   Future<List<CropPrediction>> predictCrop({
     required String soil,
     required String weather,
     required String season,
+    required String totalLand,
+    required String irrigationType,
+    required String waterAvailability,
+    required String previousCrop,
+    required String marketDemand,
+    required String budgetRange,
+    required String laborAvailability,
     String? location,
     String? soilPh,
     String? rainfall,
   }) async {
-    try {
-      return await _geminiService.getCropPredictions(
-        soilType: soil,
-        weatherCondition: weather,
-        season: season,
-        location: location,
-        soilPh: soilPh,
-        rainfall: rainfall,
-      );
-    } catch (e) {
-      // Fallback to basic predictions if Gemini AI fails
-      return _getFallbackPredictions(soil, weather, season);
-    }
+    // Artificial delay to simulate "thinking" (optional, but good for UX)
+    await Future.delayed(const Duration(seconds: 1));
+    
+    // Debug print
+    print("Calling SmartCropEngine with: land=$totalLand, budget=$budgetRange");
+
+    return SmartCropEngine.predict(
+      soilType: soil,
+      season: season,
+      waterAvailability: waterAvailability,
+      irrigationType: irrigationType,
+      totalLand: totalLand,
+      budgetRange: budgetRange,
+      marketDemand: marketDemand,
+      previousCrop: previousCrop,
+    );
   }
 
   List<CropPrediction> _getFallbackPredictions(String soil, String weather, String season) {

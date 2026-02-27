@@ -12,7 +12,7 @@ class InventoryManagementScreen extends StatefulWidget {
   const InventoryManagementScreen({super.key});
 
   @override
-  _InventoryManagementScreenState createState() => _InventoryManagementScreenState();
+  State<InventoryManagementScreen> createState() => _InventoryManagementScreenState();
 }
 
 class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
@@ -141,13 +141,13 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
               padding: const EdgeInsets.all(16),
               decoration: AppTheme.cardDecoration.copyWith(
                 color: Colors.white,
-                border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.1)),
+                border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.1)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildSummaryItem(context, ls.getLocalizedString('total_items'), '${_inventory.length}'),
-                  Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.3)),
+                  Container(width: 1, height: 40, color: Colors.grey.withValues(alpha: 0.3)),
                   _buildSummaryItem(context, ls.getLocalizedString('total_value'), '₹${_calculateTotalValue().toStringAsFixed(0)}'),
                 ],
               ),
@@ -284,7 +284,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
         leading: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.primaryGreen.withOpacity(0.1),
+            color: AppTheme.primaryGreen.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.inventory_2, color: AppTheme.primaryGreen),

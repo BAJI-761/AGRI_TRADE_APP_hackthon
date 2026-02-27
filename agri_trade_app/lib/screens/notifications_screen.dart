@@ -141,17 +141,17 @@ class NotificationsScreen extends StatelessWidget {
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: AppTheme.cardDecoration.copyWith(
-                        color: notification.isRead ? Colors.white : Colors.blue.shade50.withOpacity(0.5),
+                        color: notification.isRead ? Colors.white : Colors.blue.shade50.withValues(alpha: 0.5),
                         border: notification.isRead 
-                            ? Border.all(color: Colors.grey.withOpacity(0.1))
-                            : Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+                            ? Border.all(color: Colors.grey.withValues(alpha: 0.1))
+                            : Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.3)),
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.all(16),
                         leading: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: _getNotificationColor(notification.type).withOpacity(0.1),
+                            color: _getNotificationColor(notification.type).withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
